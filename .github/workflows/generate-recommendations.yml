@@ -1,0 +1,33 @@
+name: Generate Recommended Feed
+
+on:
+  schedule:
+    # Run every 30 minutes
+    - cron: '*/30 * * * *'
+  workflow_dispatch: # Allows manual trigger from Actions tab
+
+permissions:
+  contents: write
+
+jobs:
+  recommendations:
+    runs-on: ubuntu-latest
+    if: github.repository == 'cl-andro/backend-core'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Recommendation Script
+        env:
+          GITHUB_TOKEN: ${{ secrets.APP_GITHUB_TOKEN }}
+          GITHUB_ORGANIZATION: ${{ secrets.APP_GITHUB_ORGANIZATION }}
+        run: node scripts/generate-recommendations.mjs
