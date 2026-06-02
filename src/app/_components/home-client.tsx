@@ -326,6 +326,7 @@ export default function HomeClient({ assignments }: HomeClientProps) {
         return await toPng(cardElement, {
           backgroundColor: '#ffffff',
           cacheBust: true,
+          skipFonts: true,
           style: {
             borderRadius: '8px',
             boxShadow: 'none',
@@ -394,6 +395,7 @@ export default function HomeClient({ assignments }: HomeClientProps) {
         return await toPng(cardElement, {
           backgroundColor: '#ffffff',
           cacheBust: true,
+          skipFonts: true,
           style: {
             borderRadius: '4px',
             boxShadow: 'none',

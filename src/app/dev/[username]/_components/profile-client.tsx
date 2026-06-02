@@ -222,6 +222,7 @@ export default function ProfileClient({
         return await toPng(cardElement, {
           backgroundColor: '#ffffff',
           cacheBust: true,
+          skipFonts: true,
           style: {
             borderRadius: '8px',
             boxShadow: 'none',

@@ -230,6 +230,7 @@ export default function PostModal({ isOpen, onClose, onPostCreated, session, cur
         return await toPng(cardElement, {
           backgroundColor: '#ffffff',
           cacheBust: true,
+          skipFonts: true,
           style: {
             borderRadius: '4px',
             boxShadow: 'none',
