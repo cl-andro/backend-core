@@ -377,4 +377,14 @@ body.post-modal-open footer {
   margin-right: 0;
   margin-bottom: 0.75rem;
 }
+.prose a {
+  color: #1877f2 !important;
+  text-decoration: underline !important;
+  font-weight: 500;
+}
+.prose a:hover {
+  color: #166fe5 !important;
+  text-decoration: underline !important;
+}
+
 
