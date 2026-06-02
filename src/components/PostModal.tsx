@@ -74,51 +74,106 @@ export default function PostModal({ isOpen, onClose, onPostCreated, session, cur
 
     switch (type) {
       case "bold":
-        insertion = `**${selectedText || "bold text"}**`;
-        selectionOffsetStart = 2;
-        selectionOffsetEnd = insertion.length - 2;
+        if (selectedText) {
+          insertion = `**${selectedText}**`;
+          selectionOffsetStart = 2;
+          selectionOffsetEnd = insertion.length - 2;
+        } else {
+          insertion = `****`;
+          selectionOffsetStart = 2;
+          selectionOffsetEnd = 2;
+        }
         break;
       case "italic":
-        insertion = `*${selectedText || "italic text"}*`;
-        selectionOffsetStart = 1;
-        selectionOffsetEnd = insertion.length - 1;
+        if (selectedText) {
+          insertion = `*${selectedText}*`;
+          selectionOffsetStart = 1;
+          selectionOffsetEnd = insertion.length - 1;
+        } else {
+          insertion = `**`;
+          selectionOffsetStart = 1;
+          selectionOffsetEnd = 1;
+        }
         break;
       case "code":
-        insertion = `\`${selectedText || "code"}\``;
-        selectionOffsetStart = 1;
-        selectionOffsetEnd = insertion.length - 1;
+        if (selectedText) {
+          insertion = `\`${selectedText}\``;
+          selectionOffsetStart = 1;
+          selectionOffsetEnd = insertion.length - 1;
+        } else {
+          insertion = `\`\``;
+          selectionOffsetStart = 1;
+          selectionOffsetEnd = 1;
+        }
         break;
       case "codeblock":
-        insertion = `\n\`\`\`\n${selectedText || "code block"}\n\`\`\`\n`;
-        selectionOffsetStart = 5;
-        selectionOffsetEnd = insertion.length - 5;
+        if (selectedText) {
+          insertion = `\n\`\`\`\n${selectedText}\n\`\`\`\n`;
+          selectionOffsetStart = 5;
+          selectionOffsetEnd = insertion.length - 5;
+        } else {
+          insertion = `\n\`\`\`\n\n\`\`\`\n`;
+          selectionOffsetStart = 5;
+          selectionOffsetEnd = 5;
+        }
         break;
       case "link":
-        const url = prompt("Enter URL:", "https://");
+        const url = prompt("Enter URL (e.g. https://example.com):", "");
         if (url === null) return;
-        insertion = `[${selectedText || "link text"}](${url})`;
-        selectionOffsetStart = 1;
-        selectionOffsetEnd = (selectedText || "link text").length + 1;
+        const targetUrl = url.trim() || "https://";
+        if (selectedText) {
+          insertion = `[${selectedText}](${targetUrl})`;
+          selectionOffsetStart = 1;
+          selectionOffsetEnd = selectedText.length + 1;
+        } else {
+          insertion = `[](${targetUrl})`;
+          selectionOffsetStart = 1;
+          selectionOffsetEnd = 1;
+        }
         break;
       case "quote":
-        insertion = `\n> ${selectedText || "quote"}\n`;
-        selectionOffsetStart = 3;
-        selectionOffsetEnd = insertion.length - 1;
+        if (selectedText) {
+          insertion = `\n> ${selectedText}\n`;
+          selectionOffsetStart = 3;
+          selectionOffsetEnd = insertion.length - 1;
+        } else {
+          insertion = `\n> `;
+          selectionOffsetStart = 3;
+          selectionOffsetEnd = 3;
+        }
         break;
       case "bullet":
-        insertion = `\n- ${selectedText || "list item"}`;
-        selectionOffsetStart = 3;
-        selectionOffsetEnd = insertion.length;
+        if (selectedText) {
+          insertion = `\n- ${selectedText}`;
+          selectionOffsetStart = 3;
+          selectionOffsetEnd = insertion.length;
+        } else {
+          insertion = `\n- `;
+          selectionOffsetStart = 3;
+          selectionOffsetEnd = 3;
+        }
         break;
       case "ordered":
-        insertion = `\n1. ${selectedText || "list item"}`;
-        selectionOffsetStart = 4;
-        selectionOffsetEnd = insertion.length;
+        if (selectedText) {
+          insertion = `\n1. ${selectedText}`;
+          selectionOffsetStart = 4;
+          selectionOffsetEnd = insertion.length;
+        } else {
+          insertion = `\n1. `;
+          selectionOffsetStart = 4;
+          selectionOffsetEnd = 4;
+        }
         break;
       case "task":
-        insertion = `\n- [ ] ${selectedText || "task item"}`;
-        selectionOffsetStart = 8;
-        selectionOffsetEnd = insertion.length;
+        if (selectedText) {
+          insertion = `\n- [ ] ${selectedText}`;
+          selectionOffsetStart = 8;
+          selectionOffsetEnd = insertion.length;
+        } else {
+          insertion = `\n- [ ] `;
+          selectionOffsetStart = 7;
+          selectionOffsetEnd = 7;
+        }
         break;
       default:
         return;
@@ -127,6 +182,7 @@ export default function PostModal({ isOpen, onClose, onPostCreated, session, cur
     const newText = text.substring(0, start) + insertion + text.substring(end);
     setPostContent(newText);
 
+    // Restore selection/focus
     setTimeout(() => {
       textarea.focus();
       textarea.setSelectionRange(start + selectionOffsetStart, start + selectionOffsetEnd);
