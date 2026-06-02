@@ -133,6 +133,36 @@ export default function PostModal({ isOpen, onClose, onPostCreated, session, cur
     }, 0);
   };
 
+  const handleTextareaSelection = (e: React.SyntheticEvent<HTMLTextAreaElement>) => {
+    const textarea = e.currentTarget;
+    const val = textarea.value;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+
+    const PLACEHOLDERS = [
+      "task item",
+      "bold text",
+      "italic text",
+      "code block",
+      "link text",
+      "quote",
+      "list item"
+    ];
+
+    if (start === end) {
+      for (const placeholder of PLACEHOLDERS) {
+        let index = -1;
+        while ((index = val.indexOf(placeholder, index + 1)) !== -1) {
+          if (start >= index && start <= index + placeholder.length) {
+            textarea.setSelectionRange(index, index + placeholder.length);
+            break;
+          }
+        }
+      }
+    }
+  };
+
+
   const handlePostSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!postContent.trim() || isSubmitting) return;
@@ -314,6 +344,7 @@ export default function PostModal({ isOpen, onClose, onPostCreated, session, cur
                 placeholder={`What's on your mind, ${currentDev?.name || "Developer"}? Write here, sync to GitHub... (Supports Markdown)`}
                 value={postContent}
                 onChange={(e) => setPostContent(e.target.value)}
+                onSelect={handleTextareaSelection}
                 className="flex-1 w-full text-sm resize-none focus:outline-none border-transparent p-1.5 rounded-sm min-h-[150px]"
                 maxLength={1000}
               />

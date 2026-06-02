@@ -183,6 +183,36 @@ export default function HomeClient({ assignments }: HomeClientProps) {
     }, 0);
   };
 
+  const handleTextareaSelection = (e: React.SyntheticEvent<HTMLTextAreaElement>) => {
+    const textarea = e.currentTarget;
+    const val = textarea.value;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+
+    const PLACEHOLDERS = [
+      "task item",
+      "bold text",
+      "italic text",
+      "code block",
+      "link text",
+      "quote",
+      "list item"
+    ];
+
+    if (start === end) {
+      for (const placeholder of PLACEHOLDERS) {
+        let index = -1;
+        while ((index = val.indexOf(placeholder, index + 1)) !== -1) {
+          if (start >= index && start <= index + placeholder.length) {
+            textarea.setSelectionRange(index, index + placeholder.length);
+            break;
+          }
+        }
+      }
+    }
+  };
+
+
   const [commentInputs, setCommentInputs] = useState<Record<number, string>>({});
   const [commentingPostId, setCommentingPostId] = useState<number | null>(null);
 
@@ -927,6 +957,7 @@ export default function HomeClient({ assignments }: HomeClientProps) {
                       placeholder={`What's on your mind, ${currentDev?.name || "Developer"}? Write here, sync to GitHub... (Supports Markdown)`}
                       value={postContent}
                       onChange={(e) => setPostContent(e.target.value)}
+                      onSelect={handleTextareaSelection}
                       rows={4}
                       className="w-full text-sm resize-none focus:outline-none border border-transparent focus:border-gray-200 p-1.5 rounded-sm"
                       maxLength={1000}

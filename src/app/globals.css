@@ -74,9 +74,10 @@ body {
 }
 
 ::selection {
-  background: rgba(200, 230, 74, 0.3);
-  color: #e8dcc8;
+  background: rgba(24, 119, 242, 0.2); /* standard blue selection */
+  color: inherit;
 }
+
 
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
