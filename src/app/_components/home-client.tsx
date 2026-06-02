@@ -327,6 +327,7 @@ export default function HomeClient({ assignments }: HomeClientProps) {
           backgroundColor: '#ffffff',
           cacheBust: true,
           skipFonts: true,
+          pixelRatio: 2,
           style: {
             borderRadius: '8px',
             boxShadow: 'none',
@@ -369,7 +370,8 @@ export default function HomeClient({ assignments }: HomeClientProps) {
         const pdf = new jsPDF({
           orientation: 'portrait',
           unit: 'px',
-          format: [cardElement.clientWidth + 40, cardElement.clientHeight + 40]
+          format: [cardElement.clientWidth + 40, cardElement.clientHeight + 40],
+          hotfixes: ['px_scaling']
         });
         pdf.addImage(dataUrl, 'PNG', 20, 20, cardElement.clientWidth, cardElement.clientHeight);
         pdf.save(`post-${postId}.pdf`);
@@ -396,6 +398,7 @@ export default function HomeClient({ assignments }: HomeClientProps) {
           backgroundColor: '#ffffff',
           cacheBust: true,
           skipFonts: true,
+          pixelRatio: 2,
           style: {
             borderRadius: '4px',
             boxShadow: 'none',
@@ -426,7 +429,8 @@ export default function HomeClient({ assignments }: HomeClientProps) {
         const pdf = new jsPDF({
           orientation: 'portrait',
           unit: 'px',
-          format: [cardElement.clientWidth + 40, cardElement.clientHeight + 40]
+          format: [cardElement.clientWidth + 40, cardElement.clientHeight + 40],
+          hotfixes: ['px_scaling']
         });
         pdf.addImage(dataUrl, 'PNG', 20, 20, cardElement.clientWidth, cardElement.clientHeight);
         pdf.save(`draft-post.pdf`);
