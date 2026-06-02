@@ -1,5 +1,5 @@
 import ReactMarkdown from "react-markdown";
-import { useMemo } from "react";
+import React, { useMemo } from "react";
 
 interface MarkdownViewerProps {
   content: string;
@@ -42,66 +42,61 @@ export default function MarkdownViewer({ content }: MarkdownViewerProps) {
         components={{
           strong: ({ node, children, ...props }) => {
             const isPlaceholder = isPlaceholderText(children);
+            if (isPlaceholder) return null;
             return (
-              <strong 
-                className={isPlaceholder ? "text-gray-400 opacity-60 italic font-normal" : "font-bold"} 
-                {...props}
-              >
+              <strong className="font-bold" {...props}>
                 {children}
               </strong>
             );
           },
           em: ({ node, children, ...props }) => {
             const isPlaceholder = isPlaceholderText(children);
+            if (isPlaceholder) return null;
             return (
-              <em 
-                className={isPlaceholder ? "text-gray-400 opacity-60 italic font-normal" : "italic"} 
-                {...props}
-              >
+              <em className="italic" {...props}>
                 {children}
               </em>
             );
           },
           code: ({ node, children, ...props }) => {
             const isPlaceholder = isPlaceholderText(children);
+            if (isPlaceholder) return null;
             return (
-              <code 
-                className={isPlaceholder ? "text-gray-400 opacity-60 italic font-normal" : ""} 
-                {...props}
-              >
+              <code {...props}>
                 {children}
               </code>
             );
           },
           li: ({ node, children, ...props }) => {
-            const isPlaceholder = isPlaceholderText(children);
+            const cleanChildren = React.Children.map(children, (child) => {
+              if (typeof child === "string" && isPlaceholderText(child)) {
+                return "";
+              }
+              if (React.isValidElement(child) && isPlaceholderText(child)) {
+                return null;
+              }
+              return child;
+            });
             return (
-              <li 
-                className={isPlaceholder ? "text-gray-400 opacity-60 italic list-none" : ""} 
-                {...props}
-              >
-                {children}
+              <li {...props}>
+                {cleanChildren}
               </li>
             );
           },
           a: ({ node, children, ...props }) => {
             const isPlaceholder = isPlaceholderText(children);
+            if (isPlaceholder) return null;
             return (
-              <a 
-                className={isPlaceholder ? "text-gray-400 opacity-60 italic no-underline pointer-events-none" : "text-[#1877f2] underline font-medium hover:text-[#166fe5]"} 
-                {...props}
-              >
+              <a className="text-[#1877f2] underline font-medium hover:text-[#166fe5]" {...props}>
                 {children}
               </a>
             );
           },
           blockquote: ({ node, children, ...props }) => {
             const isPlaceholder = isPlaceholderText(children);
+            if (isPlaceholder) return null;
             return (
-              <blockquote 
-                className={isPlaceholder ? "text-gray-300 opacity-50 italic font-normal border-l-2 border-gray-200" : ""} 
-                {...props}
-              >
+              <blockquote {...props}>
                 {children}
               </blockquote>
             );
