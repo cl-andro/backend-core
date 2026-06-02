@@ -118,16 +118,13 @@ export default function PostModal({ isOpen, onClose, onPostCreated, session, cur
         }
         break;
       case "link":
-        const url = prompt("Enter URL (e.g. https://example.com):", "");
-        if (url === null) return;
-        const targetUrl = url.trim() || "https://";
         if (selectedText) {
-          insertion = `[${selectedText}](${targetUrl})`;
-          selectionOffsetStart = 1;
-          selectionOffsetEnd = selectedText.length + 1;
+          insertion = `[${selectedText}](https://)`;
+          selectionOffsetStart = selectedText.length + 3; // start of 'https://'
+          selectionOffsetEnd = selectedText.length + 11; // end of 'https://'
         } else {
-          insertion = `[](${targetUrl})`;
-          selectionOffsetStart = 1;
+          insertion = `[](https://)`;
+          selectionOffsetStart = 1; // cursor inside '[]'
           selectionOffsetEnd = 1;
         }
         break;
