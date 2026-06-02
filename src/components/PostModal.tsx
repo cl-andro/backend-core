@@ -150,12 +150,25 @@ export default function PostModal({ isOpen, onClose, onPostCreated, session, cur
     ];
 
     if (start === end) {
+      // Check standard placeholders
       for (const placeholder of PLACEHOLDERS) {
         let index = -1;
         while ((index = val.indexOf(placeholder, index + 1)) !== -1) {
           if (start >= index && start <= index + placeholder.length) {
             textarea.setSelectionRange(index, index + placeholder.length);
-            break;
+            return;
+          }
+        }
+      }
+
+      // Check for raw 'https://' placeholder inside link brackets e.g. '(https://)'
+      let index = -1;
+      const target = "https://";
+      while ((index = val.indexOf(target, index + 1)) !== -1) {
+        if (val.charAt(index + target.length) === ")") {
+          if (start >= index && start <= index + target.length) {
+            textarea.setSelectionRange(index, index + target.length);
+            return;
           }
         }
       }

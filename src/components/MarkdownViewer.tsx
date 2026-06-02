@@ -84,7 +84,7 @@ export default function MarkdownViewer({ content }: MarkdownViewerProps) {
             );
           },
           a: ({ node, children, ...props }) => {
-            const isPlaceholder = isPlaceholderText(children);
+            const isPlaceholder = isPlaceholderText(children) || props.href === "https://" || !props.href;
             if (isPlaceholder) return null;
             return (
               <a className="text-[#1877f2] underline font-medium hover:text-[#166fe5]" {...props}>
