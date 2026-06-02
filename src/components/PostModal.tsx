@@ -226,13 +226,30 @@ export default function PostModal({ isOpen, onClose, onPostCreated, session, cur
     try {
       await new Promise((resolve) => setTimeout(resolve, 150));
 
-      const dataUrl = await toPng(cardElement, {
-        backgroundColor: '#ffffff',
-        style: {
-          borderRadius: '4px',
-          boxShadow: 'none',
-        }
-      });
+      const capture = async (excludeImages = false) => {
+        return await toPng(cardElement, {
+          backgroundColor: '#ffffff',
+          cacheBust: true,
+          style: {
+            borderRadius: '4px',
+            boxShadow: 'none',
+          },
+          filter: (domNode: any) => {
+            if (excludeImages && (domNode.tagName === 'IMG' || domNode.tagName === 'Image')) {
+              return false;
+            }
+            return true;
+          }
+        });
+      };
+
+      let dataUrl;
+      try {
+        dataUrl = await capture(false);
+      } catch (err) {
+        console.warn('Composer preview initial capture failed, trying without images...', err);
+        dataUrl = await capture(true);
+      }
 
       if (type === 'png') {
         const link = document.createElement('a');
