@@ -12,8 +12,11 @@ import {
   ListOrdered, 
   CheckSquare, 
   Quote, 
-  Loader2 
+  Loader2,
+  Download
 } from "lucide-react";
+import { toPng } from "html-to-image";
+import jsPDF from "jspdf";
 import MarkdownViewer from "@/components/MarkdownViewer";
 
 interface PostModalProps {
@@ -36,6 +39,7 @@ export default function PostModal({ isOpen, onClose, onPostCreated, session, cur
   const [linkUrl, setLinkUrl] = useState("");
   const [linkText, setLinkText] = useState("");
   const [textareaSelRange, setTextareaSelRange] = useState<{ start: number; end: number } | null>(null);
+  const [isExportingComposer, setIsExportingComposer] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -212,6 +216,44 @@ export default function PostModal({ isOpen, onClose, onPostCreated, session, cur
       textarea.focus();
       textarea.setSelectionRange(start + 1, start + 1 + displayName.length);
     }, 0);
+  };
+
+  const handleExportModalPreview = async (type: 'png' | 'pdf') => {
+    const cardElement = document.getElementById('modal-preview-card');
+    if (!cardElement) return;
+
+    setIsExportingComposer(true);
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
+      const dataUrl = await toPng(cardElement, {
+        backgroundColor: '#ffffff',
+        style: {
+          borderRadius: '4px',
+          boxShadow: 'none',
+        }
+      });
+
+      if (type === 'png') {
+        const link = document.createElement('a');
+        link.download = `draft-post.png`;
+        link.href = dataUrl;
+        link.click();
+      } else if (type === 'pdf') {
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'px',
+          format: [cardElement.clientWidth + 40, cardElement.clientHeight + 40]
+        });
+        pdf.addImage(dataUrl, 'PNG', 20, 20, cardElement.clientWidth, cardElement.clientHeight);
+        pdf.save(`draft-post.pdf`);
+      }
+    } catch (error) {
+      console.error('Composer export failed:', error);
+      alert('Failed to export preview');
+    } finally {
+      setIsExportingComposer(false);
+    }
   };
 
   const handleTextareaSelection = (e: React.SyntheticEvent<HTMLTextAreaElement>) => {
@@ -444,11 +486,60 @@ export default function PostModal({ isOpen, onClose, onPostCreated, session, cur
               />
             </div>
           ) : (
-            <div className="flex-1 overflow-y-auto px-1.5 py-2 border border-dashed border-gray-300 rounded-sm bg-gray-50 min-h-[200px] select-text">
-              {postContent.trim() ? (
-                <MarkdownViewer content={postContent} />
-              ) : (
-                <span className="text-gray-400 text-xs italic">Nothing to preview</span>
+            <div className="flex-1 overflow-y-auto space-y-2 flex flex-col min-h-0">
+              <div id="modal-preview-card" className="p-3 border border-dashed border-gray-300 rounded bg-gray-50 select-text relative flex-1 min-h-[200px]">
+                {postContent.trim() ? (
+                  <div className="space-y-3 bg-white p-4 border border-[#dadde1] rounded shadow-xs text-left">
+                    <div className="flex items-center gap-2.5">
+                      <div className="relative h-9 w-9 rounded-full overflow-hidden border border-gray-200 shrink-0">
+                        <img
+                          src={currentDev?.avatar_url ?? "/default-avatar.png"}
+                          alt={currentDev?.github_login || "Developer"}
+                          className="h-full w-full object-cover"
+                          crossOrigin="anonymous"
+                        />
+                      </div>
+                      <div>
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="font-bold text-xs text-[#3b5998]">
+                            {currentDev?.name || currentDev?.github_login || "Developer"}
+                          </span>
+                          <span className="text-[10px] text-gray-400 font-mono">
+                            @{currentDev?.github_login || "dev"}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-[#65676b] block">
+                          Preview Draft
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-sm leading-relaxed text-gray-800">
+                      <MarkdownViewer content={postContent} />
+                    </div>
+                  </div>
+                ) : (
+                  <span className="text-gray-400 text-xs italic">Nothing to preview</span>
+                )}
+              </div>
+              {postContent.trim() && (
+                <div className="flex justify-end gap-2 text-xs px-1.5 shrink-0">
+                  <button
+                    type="button"
+                    disabled={isExportingComposer}
+                    onClick={() => handleExportModalPreview('png')}
+                    className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-[#4b4f56] font-bold rounded flex items-center gap-1 transition-colors disabled:opacity-50 cursor-pointer"
+                  >
+                    <Download className="h-3 w-3" /> Export PNG
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isExportingComposer}
+                    onClick={() => handleExportModalPreview('pdf')}
+                    className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-[#4b4f56] font-bold rounded flex items-center gap-1 transition-colors disabled:opacity-50 cursor-pointer"
+                  >
+                    <Download className="h-3 w-3" /> Export PDF
+                  </button>
+                </div>
               )}
             </div>
           )}

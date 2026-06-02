@@ -21,8 +21,11 @@ import {
   List,
   ListOrdered,
   CheckSquare,
-  Quote
+  Quote,
+  Download
 } from "lucide-react";
+import { toPng } from "html-to-image";
+import jsPDF from "jspdf";
 import type { Session } from "@supabase/supabase-js";
 import { createBrowserSupabase } from "@/lib/supabase";
 import Image from "next/image";
@@ -94,6 +97,11 @@ export default function HomeClient({ assignments }: HomeClientProps) {
   const [linkUrl, setLinkUrl] = useState("");
   const [linkText, setLinkText] = useState("");
   const [textareaSelRange, setTextareaSelRange] = useState<{ start: number; end: number } | null>(null);
+
+  // Export/Download states
+  const [activeExportDropdown, setActiveExportDropdown] = useState<number | null>(null);
+  const [exportingPostId, setExportingPostId] = useState<number | null>(null);
+  const [isExportingComposer, setIsExportingComposer] = useState(false);
 
   useEffect(() => {
     const handleOpenModal = () => setIsPostModalOpen(true);
@@ -305,6 +313,98 @@ export default function HomeClient({ assignments }: HomeClientProps) {
     }
   };
 
+  const handleExportPost = async (postId: number, type: 'png' | 'pdf') => {
+    const cardElement = document.getElementById(`post-card-${postId}`);
+    if (!cardElement) return;
+
+    setExportingPostId(postId);
+    try {
+      cardElement.classList.add('exporting-mode');
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
+      const dataUrl = await toPng(cardElement, {
+        backgroundColor: '#ffffff',
+        style: {
+          borderRadius: '8px',
+          boxShadow: 'none',
+          border: '1px solid #dadde1',
+        },
+        filter: (domNode: any) => {
+          if (domNode.classList && (
+            domNode.classList.contains('export-ignore') ||
+            domNode.classList.contains('comments-section') ||
+            domNode.tagName === 'BUTTON' ||
+            domNode.tagName === 'FORM' ||
+            domNode.tagName === 'TEXTAREA'
+          )) {
+            return false;
+          }
+          return true;
+        }
+      });
+
+      cardElement.classList.remove('exporting-mode');
+
+      if (type === 'png') {
+        const link = document.createElement('a');
+        link.download = `post-${postId}.png`;
+        link.href = dataUrl;
+        link.click();
+      } else if (type === 'pdf') {
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'px',
+          format: [cardElement.clientWidth + 40, cardElement.clientHeight + 40]
+        });
+        pdf.addImage(dataUrl, 'PNG', 20, 20, cardElement.clientWidth, cardElement.clientHeight);
+        pdf.save(`post-${postId}.pdf`);
+      }
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('Failed to export post');
+      cardElement.classList.remove('exporting-mode');
+    } finally {
+      setExportingPostId(null);
+    }
+  };
+
+  const handleExportComposerPreview = async (type: 'png' | 'pdf') => {
+    const cardElement = document.getElementById('composer-preview-card');
+    if (!cardElement) return;
+
+    setIsExportingComposer(true);
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
+      const dataUrl = await toPng(cardElement, {
+        backgroundColor: '#ffffff',
+        style: {
+          borderRadius: '4px',
+          boxShadow: 'none',
+        }
+      });
+
+      if (type === 'png') {
+        const link = document.createElement('a');
+        link.download = `draft-post.png`;
+        link.href = dataUrl;
+        link.click();
+      } else if (type === 'pdf') {
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'px',
+          format: [cardElement.clientWidth + 40, cardElement.clientHeight + 40]
+        });
+        pdf.addImage(dataUrl, 'PNG', 20, 20, cardElement.clientWidth, cardElement.clientHeight);
+        pdf.save(`draft-post.pdf`);
+      }
+    } catch (error) {
+      console.error('Composer export failed:', error);
+      alert('Failed to export preview');
+    } finally {
+      setIsExportingComposer(false);
+    }
+  };
 
   const [commentInputs, setCommentInputs] = useState<Record<number, string>>({});
   const [commentingPostId, setCommentingPostId] = useState<number | null>(null);
@@ -1057,11 +1157,60 @@ export default function HomeClient({ assignments }: HomeClientProps) {
                     />
                   </div>
                 ) : (
-                  <div className="min-h-[108px] max-h-[300px] overflow-y-auto px-1.5 py-2 border border-dashed border-gray-300 rounded-sm bg-gray-50 select-text">
-                    {postContent.trim() ? (
-                      <MarkdownViewer content={postContent} />
-                    ) : (
-                      <span className="text-gray-400 text-xs italic">Nothing to preview</span>
+                  <div className="flex flex-col space-y-2">
+                    <div id="composer-preview-card" className="min-h-[108px] overflow-y-auto p-3 border border-dashed border-gray-300 rounded bg-gray-50 select-text relative">
+                      {postContent.trim() ? (
+                        <div className="space-y-3 bg-white p-4 border border-[#dadde1] rounded shadow-xs text-left">
+                          <div className="flex items-center gap-2.5">
+                            <div className="relative h-9 w-9 rounded-full overflow-hidden border border-gray-200 shrink-0">
+                              <img
+                                src={currentDev?.avatar_url ?? "/default-avatar.png"}
+                                alt={currentDev?.github_login || "Developer"}
+                                className="h-full w-full object-cover"
+                                crossOrigin="anonymous"
+                              />
+                            </div>
+                            <div>
+                              <div className="flex items-baseline gap-1.5">
+                                <span className="font-bold text-xs text-[#3b5998]">
+                                  {currentDev?.name || currentDev?.github_login || "Developer"}
+                                </span>
+                                <span className="text-[10px] text-gray-400 font-mono">
+                                  @{currentDev?.github_login || "dev"}
+                                </span>
+                              </div>
+                              <span className="text-[10px] text-[#65676b] block">
+                                Preview Draft
+                              </span>
+                            </div>
+                          </div>
+                          <div className="text-sm leading-relaxed text-gray-800">
+                            <MarkdownViewer content={postContent} />
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 text-xs italic">Nothing to preview</span>
+                      )}
+                    </div>
+                    {postContent.trim() && (
+                      <div className="flex justify-end gap-2 text-xs">
+                        <button
+                          type="button"
+                          disabled={isExportingComposer}
+                          onClick={() => handleExportComposerPreview('png')}
+                          className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-[#4b4f56] font-bold rounded flex items-center gap-1 transition-colors disabled:opacity-50 cursor-pointer"
+                        >
+                          <Download className="h-3 w-3" /> Export PNG
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isExportingComposer}
+                          onClick={() => handleExportComposerPreview('pdf')}
+                          className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-[#4b4f56] font-bold rounded flex items-center gap-1 transition-colors disabled:opacity-50 cursor-pointer"
+                        >
+                          <Download className="h-3 w-3" /> Export PDF
+                        </button>
+                      </div>
                     )}
                   </div>
                 )}
@@ -1143,7 +1292,7 @@ export default function HomeClient({ assignments }: HomeClientProps) {
                 </div>
               ) : (
                 posts.map((post) => (
-                  <div key={post.id} className="bg-white border border-[#dadde1] rounded-sm shadow-sm">
+                  <div key={post.id} id={`post-card-${post.id}`} className="bg-white border border-[#dadde1] rounded-sm shadow-sm relative">
                     
                     {/* Post Author Header */}
                     <div className="p-3 flex items-center justify-between">
@@ -1158,6 +1307,7 @@ export default function HomeClient({ assignments }: HomeClientProps) {
                             fill
                             sizes="36px"
                             className="object-cover"
+                            crossOrigin="anonymous"
                           />
                         </Link>
                         <div>
@@ -1207,11 +1357,11 @@ export default function HomeClient({ assignments }: HomeClientProps) {
                       </div>
                     </div>
 
-                    {/* Like & Comment Buttons */}
-                    <div className="px-1 py-1 grid grid-cols-2 gap-1 text-[#65676b] font-bold text-xs text-center">
+                    {/* Like, Comment & Download Buttons */}
+                    <div className="px-1 py-1 grid grid-cols-3 gap-1 text-[#65676b] font-bold text-xs text-center border-t border-[#dadde1] export-ignore">
                       <button
                         onClick={() => handleLikePost(post.id)}
-                        className={`py-1.5 hover:bg-[#f2f3f5] rounded flex items-center justify-center gap-1.5 transition-colors ${
+                        className={`py-1.5 hover:bg-[#f2f3f5] rounded flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
                           post.liked_by_me ? "text-[#1877f2]" : ""
                         }`}
                       >
@@ -1223,16 +1373,61 @@ export default function HomeClient({ assignments }: HomeClientProps) {
                           const input = document.getElementById(`comment-input-${post.id}`);
                           if (input) input.focus();
                         }}
-                        className="py-1.5 hover:bg-[#f2f3f5] rounded flex items-center justify-center gap-1.5 transition-colors"
+                        className="py-1.5 hover:bg-[#f2f3f5] rounded flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                       >
                         <MessageSquare className="h-3.5 w-3.5" />
                         Comment
                       </button>
+                      <div className="relative">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveExportDropdown(activeExportDropdown === post.id ? null : post.id);
+                          }}
+                          disabled={exportingPostId === post.id}
+                          className="w-full py-1.5 hover:bg-[#f2f3f5] rounded flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                        >
+                          {exportingPostId === post.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin text-[#3b5998]" />
+                          ) : (
+                            <Download className="h-3.5 w-3.5" />
+                          )}
+                          Download
+                        </button>
+                        {activeExportDropdown === post.id && (
+                          <>
+                            <div 
+                              className="fixed inset-0 z-30" 
+                              onClick={() => setActiveExportDropdown(null)} 
+                            />
+                            <div className="absolute right-0 bottom-full mb-1 bg-white border border-[#dadde1] rounded shadow-lg py-1 z-40 w-32 text-left animate-in fade-in slide-in-from-bottom-2 duration-150">
+                              <button
+                                onClick={() => {
+                                  setActiveExportDropdown(null);
+                                  handleExportPost(post.id, 'png');
+                                }}
+                                className="w-full px-3 py-1.5 text-xs text-gray-700 hover:bg-[#f2f3f5] flex items-center gap-2 font-semibold cursor-pointer"
+                              >
+                                <span>PNG Image</span>
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setActiveExportDropdown(null);
+                                  handleExportPost(post.id, 'pdf');
+                                }}
+                                className="w-full px-3 py-1.5 text-xs text-gray-700 hover:bg-[#f2f3f5] flex items-center gap-2 font-semibold cursor-pointer"
+                              >
+                                <span>PDF Document</span>
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </div>
 
                     {/* Comments Section */}
                     {post.comments && post.comments.length > 0 && (
-                      <div className="bg-[#f5f6f7] border-t border-[#dadde1] px-3 py-2 space-y-2.5">
+                      <div className="bg-[#f5f6f7] border-t border-[#dadde1] px-3 py-2 space-y-2.5 comments-section export-ignore">
                         {post.comments.map((comment: any) => (
                           <div key={comment.id} className="flex items-start gap-2 text-xs">
                             <Link
@@ -1273,7 +1468,7 @@ export default function HomeClient({ assignments }: HomeClientProps) {
 
                     {/* Write Comment Box */}
                     {session ? (
-                      <div className="p-2 border-t border-[#dadde1] bg-[#f5f6f7] flex items-center gap-2">
+                      <div className="p-2 border-t border-[#dadde1] bg-[#f5f6f7] flex items-center gap-2 export-ignore">
                         <input
                           id={`comment-input-${post.id}`}
                           type="text"
@@ -1298,7 +1493,7 @@ export default function HomeClient({ assignments }: HomeClientProps) {
                         </button>
                       </div>
                     ) : (
-                      <div className="p-2 border-t border-[#dadde1] bg-[#f5f6f7] text-[11px] text-[#65676b] text-center">
+                      <div className="p-2 border-t border-[#dadde1] bg-[#f5f6f7] text-[11px] text-[#65676b] text-center export-ignore">
                         Please <button onClick={handleSignIn} className="text-[#1877f2] font-bold hover:underline">Sign In</button> to comment locally, or{" "}
                         {post.github_issue_number ? (
                           <Link

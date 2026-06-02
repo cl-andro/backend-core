@@ -10,8 +10,11 @@ import {
   MessageCircle,
   PlusCircle,
   AlertCircle,
-  Loader2
+  Loader2,
+  Download
 } from "lucide-react";
+import { toPng } from "html-to-image";
+import jsPDF from "jspdf";
 import Image from "next/image";
 import Link from "next/link";
 import { createBrowserSupabase } from "@/lib/supabase";
@@ -72,6 +75,10 @@ export default function ProfileClient({
   // Post modal overlay state
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
   const [currentDev, setCurrentDev] = useState<any>(null);
+
+  // Export/Download states
+  const [activeExportDropdown, setActiveExportDropdown] = useState<number | null>(null);
+  const [exportingPostId, setExportingPostId] = useState<number | null>(null);
 
   useEffect(() => {
     if (session?.user) {
@@ -200,6 +207,61 @@ export default function ProfileClient({
 
   const handleSignIn = () => {
     window.location.href = `/api/auth/github?redirect=${encodeURIComponent(window.location.pathname)}`;
+  };
+
+  const handleExportPost = async (postId: number, type: 'png' | 'pdf') => {
+    const cardElement = document.getElementById(`post-card-${postId}`);
+    if (!cardElement) return;
+
+    setExportingPostId(postId);
+    try {
+      cardElement.classList.add('exporting-mode');
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
+      const dataUrl = await toPng(cardElement, {
+        backgroundColor: '#ffffff',
+        style: {
+          borderRadius: '8px',
+          boxShadow: 'none',
+          border: '1px solid #dadde1',
+        },
+        filter: (domNode: any) => {
+          if (domNode.classList && (
+            domNode.classList.contains('export-ignore') ||
+            domNode.classList.contains('comments-section') ||
+            domNode.tagName === 'BUTTON' ||
+            domNode.tagName === 'FORM' ||
+            domNode.tagName === 'TEXTAREA'
+          )) {
+            return false;
+          }
+          return true;
+        }
+      });
+
+      cardElement.classList.remove('exporting-mode');
+
+      if (type === 'png') {
+        const link = document.createElement('a');
+        link.download = `post-${postId}.png`;
+        link.href = dataUrl;
+        link.click();
+      } else if (type === 'pdf') {
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'px',
+          format: [cardElement.clientWidth + 40, cardElement.clientHeight + 40]
+        });
+        pdf.addImage(dataUrl, 'PNG', 20, 20, cardElement.clientWidth, cardElement.clientHeight);
+        pdf.save(`post-${postId}.pdf`);
+      }
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('Failed to export post');
+      cardElement.classList.remove('exporting-mode');
+    } finally {
+      setExportingPostId(null);
+    }
   };
 
   const handleCreatePost = async (e: React.FormEvent) => {
@@ -486,7 +548,7 @@ export default function ProfileClient({
           </div>
         ) : (
           posts.map((post) => (
-            <div key={post.id} className="bg-white border border-[#dadde1] rounded-lg shadow-sm">
+            <div key={post.id} id={`post-card-${post.id}`} className="bg-white border border-[#dadde1] rounded-lg shadow-sm relative">
               
               {/* Post Author Header */}
               <div className="p-3.5 flex items-center justify-between">
@@ -498,6 +560,7 @@ export default function ProfileClient({
                       fill
                       sizes="36px"
                       className="object-cover"
+                      crossOrigin="anonymous"
                     />
                   </div>
                   <div>
@@ -544,11 +607,11 @@ export default function ProfileClient({
                 </div>
               </div>
 
-              {/* Like / Comment Buttons */}
-              <div className="px-1 py-1 grid grid-cols-2 gap-1 text-[#65676b] font-bold text-xs text-center border-b border-[#dadde1]">
+              {/* Like, Comment & Download Buttons */}
+              <div className="px-1 py-1 grid grid-cols-3 gap-1 text-[#65676b] font-bold text-xs text-center border-b border-[#dadde1] export-ignore">
                 <button
                   onClick={() => handleLikePost(post.id)}
-                  className={`py-1.5 hover:bg-[#f2f3f5] rounded flex items-center justify-center gap-1.5 transition-colors ${
+                  className={`py-1.5 hover:bg-[#f2f3f5] rounded flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
                     post.liked_by_me ? "text-[#1877f2]" : ""
                   }`}
                 >
@@ -560,16 +623,61 @@ export default function ProfileClient({
                     const input = document.getElementById(`comment-input-${post.id}`);
                     if (input) input.focus();
                   }}
-                  className="py-1.5 hover:bg-[#f2f3f5] rounded flex items-center justify-center gap-1.5 transition-colors"
+                  className="py-1.5 hover:bg-[#f2f3f5] rounded flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <MessageSquare className="h-3.5 w-3.5" />
                   Comment
                 </button>
+                <div className="relative">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveExportDropdown(activeExportDropdown === post.id ? null : post.id);
+                    }}
+                    disabled={exportingPostId === post.id}
+                    className="w-full py-1.5 hover:bg-[#f2f3f5] rounded flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    {exportingPostId === post.id ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-[#3b5998]" />
+                    ) : (
+                      <Download className="h-3.5 w-3.5" />
+                    )}
+                    Download
+                  </button>
+                  {activeExportDropdown === post.id && (
+                    <>
+                      <div 
+                        className="fixed inset-0 z-30" 
+                        onClick={() => setActiveExportDropdown(null)} 
+                      />
+                      <div className="absolute right-0 bottom-full mb-1 bg-white border border-[#dadde1] rounded shadow-lg py-1 z-40 w-32 text-left animate-in fade-in slide-in-from-bottom-2 duration-150">
+                        <button
+                          onClick={() => {
+                            setActiveExportDropdown(null);
+                            handleExportPost(post.id, 'png');
+                          }}
+                          className="w-full px-3 py-1.5 text-xs text-gray-700 hover:bg-[#f2f3f5] flex items-center gap-2 font-semibold cursor-pointer"
+                        >
+                          <span>PNG Image</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setActiveExportDropdown(null);
+                            handleExportPost(post.id, 'pdf');
+                          }}
+                          className="w-full px-3 py-1.5 text-xs text-gray-700 hover:bg-[#f2f3f5] flex items-center gap-2 font-semibold cursor-pointer"
+                        >
+                          <span>PDF Document</span>
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
 
               {/* Comments list */}
               {post.comments && post.comments.length > 0 && (
-                <div className="bg-[#f5f6f7] px-3.5 py-2.5 space-y-3">
+                <div className="bg-[#f5f6f7] px-3.5 py-2.5 space-y-3 comments-section export-ignore">
                   {post.comments.map((comment: any) => (
                     <div key={comment.id} className="flex items-start gap-2 text-xs">
                       <Link
@@ -610,7 +718,7 @@ export default function ProfileClient({
 
               {/* Write Comment Box */}
               {session ? (
-                <div className="p-2 border-t border-[#dadde1] bg-[#f5f6f7] flex items-center gap-2">
+                <div className="p-2 border-t border-[#dadde1] bg-[#f5f6f7] flex items-center gap-2 export-ignore">
                   <input
                     id={`comment-input-${post.id}`}
                     type="text"
@@ -635,7 +743,7 @@ export default function ProfileClient({
                   </button>
                 </div>
               ) : (
-                <div className="p-2 border-t border-[#dadde1] bg-[#f5f6f7] text-[11px] text-[#65676b] text-center">
+                <div className="p-2 border-t border-[#dadde1] bg-[#f5f6f7] text-[11px] text-[#65676b] text-center export-ignore">
                   Please <button onClick={handleSignIn} className="text-[#1877f2] font-bold hover:underline">Sign In</button> to comment locally, or{" "}
                   {post.github_issue_number ? (
                     <Link
