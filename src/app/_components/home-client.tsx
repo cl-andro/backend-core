@@ -89,6 +89,12 @@ export default function HomeClient({ assignments }: HomeClientProps) {
   // Post modal overlay state
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
 
+  // Link modal state
+  const [linkModalOpen, setLinkModalOpen] = useState(false);
+  const [linkUrl, setLinkUrl] = useState("");
+  const [linkText, setLinkText] = useState("");
+  const [textareaSelRange, setTextareaSelRange] = useState<{ start: number; end: number } | null>(null);
+
   useEffect(() => {
     const handleOpenModal = () => setIsPostModalOpen(true);
     window.addEventListener("open-post-modal", handleOpenModal);
@@ -167,16 +173,11 @@ export default function HomeClient({ assignments }: HomeClientProps) {
         }
         break;
       case "link":
-        if (selectedText) {
-          insertion = `[${selectedText}](https://)`;
-          selectionOffsetStart = selectedText.length + 3; // start of 'https://'
-          selectionOffsetEnd = selectedText.length + 11; // end of 'https://'
-        } else {
-          insertion = `[](https://)`;
-          selectionOffsetStart = 1; // cursor inside '[]'
-          selectionOffsetEnd = 1;
-        }
-        break;
+        setTextareaSelRange({ start, end });
+        setLinkText(selectedText);
+        setLinkUrl("");
+        setLinkModalOpen(true);
+        return;
       case "quote":
         if (selectedText) {
           insertion = `\n> ${selectedText}\n`;
@@ -232,6 +233,33 @@ export default function HomeClient({ assignments }: HomeClientProps) {
     setTimeout(() => {
       textarea.focus();
       textarea.setSelectionRange(start + selectionOffsetStart, start + selectionOffsetEnd);
+    }, 0);
+  };
+
+  const handleInsertLink = (e: React.FormEvent) => {
+    e.preventDefault();
+    const textarea = textareaRef.current;
+    if (!textarea || !textareaSelRange) {
+      setLinkModalOpen(false);
+      return;
+    }
+
+    const { start, end } = textareaSelRange;
+    const text = textarea.value;
+    const url = linkUrl.trim() || "https://";
+    const displayName = linkText.trim() || "link text";
+    
+    const insertion = `[${displayName}](${url})`;
+    const newText = text.substring(0, start) + insertion + text.substring(end);
+    setPostContent(newText);
+    setLinkModalOpen(false);
+    setTextareaSelRange(null);
+    setLinkUrl("");
+    setLinkText("");
+
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + 1, start + 1 + displayName.length);
     }, 0);
   };
 
@@ -1405,6 +1433,56 @@ export default function HomeClient({ assignments }: HomeClientProps) {
         }}
       />
       </div>
+
+      {/* Custom Link Modal Overlay */}
+      {linkModalOpen && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-[999] p-4">
+          <div className="bg-white border border-[#dadde1] w-full max-w-sm rounded-lg shadow-2xl p-4 animate-in zoom-in-95 duration-150 text-left">
+            <h3 className="font-bold text-sm text-gray-800 mb-3">Insert Link</h3>
+            <form onSubmit={handleInsertLink} className="space-y-3">
+              <div>
+                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">URL</label>
+                <input
+                  type="text"
+                  placeholder="https://"
+                  value={linkUrl}
+                  onChange={(e) => setLinkUrl(e.target.value)}
+                  className="w-full text-xs px-2.5 py-1.5 border border-[#dadde1] rounded focus:outline-none focus:border-[#1877f2]"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Link Text</label>
+                <input
+                  type="text"
+                  placeholder="Link text"
+                  value={linkText}
+                  onChange={(e) => setLinkText(e.target.value)}
+                  className="w-full text-xs px-2.5 py-1.5 border border-[#dadde1] rounded focus:outline-none focus:border-[#1877f2]"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLinkModalOpen(false);
+                    setTextareaSelRange(null);
+                  }}
+                  className="px-3 py-1.5 text-xs font-semibold text-gray-500 hover:bg-gray-100 rounded transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-3 py-1.5 text-xs font-bold text-white bg-[#1877f2] hover:bg-[#166fe5] rounded transition-colors"
+                >
+                  Insert
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <PostModal
         isOpen={isPostModalOpen}
