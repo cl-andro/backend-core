@@ -84,6 +84,11 @@ connect-device.sh
 
 # Local ADB guide
 connect-adb.md
+pkg-forge.md
+plan-key-alignment.md
+CLAUDE.md
+CODE_OF_CONDUCT.md
+README-SETUP.md
 
 # JetBrains IDE
 .idea/
