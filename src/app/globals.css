@@ -388,4 +388,11 @@ body.post-modal-open footer {
   text-decoration: underline !important;
 }
 
+/* Safe Area Insets for Mobile Notch/System Bar overlays */
+.safe-top-padding {
+  padding-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) !important;
+}
+.safe-bottom-padding {
+  padding-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) !important;
+}
 

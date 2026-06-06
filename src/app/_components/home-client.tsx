@@ -25,9 +25,8 @@ import {
   Download
 } from "lucide-react";
 import { toPng } from "html-to-image";
-import jsPDF from "jspdf";
 import type { Session } from "@supabase/supabase-js";
-import { createBrowserSupabase } from "@/lib/supabase";
+import { createBrowserSupabase, triggerGitHubLogin } from "@/lib/supabase";
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -99,7 +98,6 @@ export default function HomeClient({ assignments }: HomeClientProps) {
   const [textareaSelRange, setTextareaSelRange] = useState<{ start: number; end: number } | null>(null);
 
   // Export/Download states
-  const [activeExportDropdown, setActiveExportDropdown] = useState<number | null>(null);
   const [exportingPostId, setExportingPostId] = useState<number | null>(null);
   const [isExportingComposer, setIsExportingComposer] = useState(false);
 
@@ -313,7 +311,7 @@ export default function HomeClient({ assignments }: HomeClientProps) {
     }
   };
 
-  const handleExportPost = async (postId: number, type: 'png' | 'pdf') => {
+  const handleExportPost = async (postId: number) => {
     const cardElement = document.getElementById(`post-card-${postId}`);
     if (!cardElement) return;
 
@@ -361,21 +359,10 @@ export default function HomeClient({ assignments }: HomeClientProps) {
 
       cardElement.classList.remove('exporting-mode');
 
-      if (type === 'png') {
-        const link = document.createElement('a');
-        link.download = `post-${postId}.png`;
-        link.href = dataUrl;
-        link.click();
-      } else if (type === 'pdf') {
-        const pdf = new jsPDF({
-          orientation: 'portrait',
-          unit: 'px',
-          format: [cardElement.clientWidth + 40, cardElement.clientHeight + 40],
-          hotfixes: ['px_scaling']
-        });
-        pdf.addImage(dataUrl, 'PNG', 20, 20, cardElement.clientWidth, cardElement.clientHeight);
-        pdf.save(`post-${postId}.pdf`);
-      }
+      const link = document.createElement('a');
+      link.download = `post-${postId}.png`;
+      link.href = dataUrl;
+      link.click();
     } catch (error) {
       console.error('Export failed:', error);
       alert('Failed to export post');
@@ -385,7 +372,7 @@ export default function HomeClient({ assignments }: HomeClientProps) {
     }
   };
 
-  const handleExportComposerPreview = async (type: 'png' | 'pdf') => {
+  const handleExportComposerPreview = async () => {
     const cardElement = document.getElementById('composer-preview-card');
     if (!cardElement) return;
 
@@ -420,21 +407,10 @@ export default function HomeClient({ assignments }: HomeClientProps) {
         dataUrl = await capture(true);
       }
 
-      if (type === 'png') {
-        const link = document.createElement('a');
-        link.download = `draft-post.png`;
-        link.href = dataUrl;
-        link.click();
-      } else if (type === 'pdf') {
-        const pdf = new jsPDF({
-          orientation: 'portrait',
-          unit: 'px',
-          format: [cardElement.clientWidth + 40, cardElement.clientHeight + 40],
-          hotfixes: ['px_scaling']
-        });
-        pdf.addImage(dataUrl, 'PNG', 20, 20, cardElement.clientWidth, cardElement.clientHeight);
-        pdf.save(`draft-post.pdf`);
-      }
+      const link = document.createElement('a');
+      link.download = `draft-post.png`;
+      link.href = dataUrl;
+      link.click();
     } catch (error) {
       console.error('Composer export failed:', error);
       alert('Failed to export preview');
@@ -648,7 +624,7 @@ export default function HomeClient({ assignments }: HomeClientProps) {
 
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get("search") === "focus") {
-      const input = document.querySelector('input[placeholder="Search posts..."]') as HTMLInputElement;
+      const input = document.querySelector('input[placeholder="Search posts or @username..."]') as HTMLInputElement;
       if (input) {
         setTimeout(() => input.focus(), 150);
       }
@@ -659,21 +635,8 @@ export default function HomeClient({ assignments }: HomeClientProps) {
 
   // 5. Handlers
   const handleSignIn = async () => {
-    alert("handleSignIn clicked! Origin: " + (typeof window !== 'undefined' ? window.location.origin : 'unknown'));
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "github",
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-          scopes: "repo user:follow",
-        },
-      });
-      if (error) {
-        alert("Sign in failed: " + error.message);
-      }
-    } catch (err: any) {
-      alert("Sign in error: " + (err?.message || err));
-    }
+    const currentPath = typeof window !== "undefined" ? window.location.pathname : "/";
+    await triggerGitHubLogin(supabase, currentPath);
   };
 
   const handleSignOut = async () => {
@@ -927,29 +890,29 @@ export default function HomeClient({ assignments }: HomeClientProps) {
       <main className="mx-auto max-w-6xl px-3 py-4 grid grid-cols-12 gap-4">
         
         {/* 1. LEFT SIDEBAR (Current User Info & Nav) */}
-        <section className="col-span-12 md:col-span-3 space-y-3">
+        <section className="col-span-12 md:col-span-3 space-y-4">
           
           {/* User Profile Summary */}
           {session && currentDev ? (
-            <div className="bg-white border border-[#dadde1] rounded-sm p-3 shadow-sm text-left">
+            <div className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)] text-left hover:shadow-[0_4px_20px_rgba(0,0,0,0.05)] transition-all duration-300">
               <div className="flex items-center gap-3">
-                <div className="relative h-12 w-12 md:h-16 md:w-16 rounded-full overflow-hidden border-2 border-gray-200 shrink-0">
+                <div className="relative h-12 w-12 md:h-14 md:w-14 rounded-full overflow-hidden border border-slate-100 shrink-0">
                   <Image
                     src={currentDev.avatar_url ?? "/default-avatar.png"}
                     alt={currentDev.github_login}
                     fill
-                    sizes="(max-width: 768px) 48px, 64px"
+                    sizes="(max-width: 768px) 48px, 56px"
                     className="object-cover"
                   />
                 </div>
                 <div className="flex-1 min-w-0 text-left">
-                  <h3 className="font-bold text-sm truncate">{currentDev.name || currentDev.github_login}</h3>
+                  <h3 className="font-bold text-sm text-slate-800 truncate">{currentDev.name || currentDev.github_login}</h3>
                   <p className="text-xs text-[#65676b] truncate">@{currentDev.github_login}</p>
                 </div>
               </div>
 
               {/* Developer stats grid */}
-              <div className="mt-3 pt-3 border-t border-[#dadde1] grid grid-cols-3 gap-2 text-center text-xs">
+              <div className="mt-3 pt-3 border-t border-slate-100 grid grid-cols-3 gap-2 text-center text-xs">
                 <div>
                   <span className="block font-bold text-gray-800">{currentDev.contributions}</span>
                   <span className="text-[10px] text-[#65676b]">Contribs</span>
@@ -965,32 +928,32 @@ export default function HomeClient({ assignments }: HomeClientProps) {
               </div>
 
               {currentDev.assigned_repo && (
-                <div className="mt-3 text-[10px] text-center bg-[#f0f2f5] py-1.5 px-2 rounded-sm border border-[#e4e6eb] truncate">
-                  <Database className="h-3 w-3 inline mr-1 text-gray-600" />
-                  <span className="font-mono text-gray-600">{currentDev.assigned_repo}</span>
+                <div className="mt-3 text-[10px] text-center bg-slate-50 border border-slate-100 py-1.5 px-2 rounded-lg truncate">
+                  <Database className="h-3 w-3 inline mr-1 text-slate-500" />
+                  <span className="font-mono text-slate-600">{currentDev.assigned_repo}</span>
                 </div>
               )}
             </div>
           ) : (
-            <div className="bg-white border border-[#dadde1] rounded-sm p-4 shadow-sm text-center">
-              <h3 className="font-bold text-sm text-gray-700">Developer Network</h3>
-              <p className="text-xs text-gray-500 mt-1">Sign in with GitHub to claim your repository and share your updates!</p>
-              <a
-                href="/api/auth/github"
-                className="mt-3 w-full bg-[#3b5998] hover:bg-[#304d8a] text-white text-xs py-1.5 px-3 rounded-sm font-semibold flex items-center justify-center gap-1.5 shadow cursor-pointer"
+            <div className="bg-white border border-[#e4e6eb] rounded-xl p-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] text-center">
+              <h3 className="font-bold text-sm text-slate-700">Developer Network</h3>
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed">Sign in with GitHub to claim your repository and share your updates!</p>
+              <button
+                onClick={handleSignIn}
+                className="mt-3.5 w-full bg-[#1877f2] hover:bg-[#166fe5] text-white text-xs py-2 px-3 rounded-lg font-semibold flex items-center justify-center gap-1.5 shadow-sm hover:shadow transition-all cursor-pointer"
               >
                 <Github className="h-4 w-4" />
                 Sign In
-              </a>
+              </button>
             </div>
           )}
 
           {/* Quick Navigation Menu */}
-          <div className="bg-white border border-[#dadde1] rounded-sm py-1.5 shadow-sm text-sm">
+          <div className="bg-white border border-[#e4e6eb] rounded-xl p-1.5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] text-sm space-y-0.5">
             <button
               onClick={() => handleTabChange("feed")}
-              className={`w-full text-left px-4 py-2 hover:bg-[#f2f3f5] flex items-center gap-2.5 font-semibold ${
-                activeTab === "feed" && !activeSearch ? "bg-[#e7f3ff] text-[#1877f2] border-l-4 border-[#1877f2] pl-3" : "text-[#1c1e21]"
+              className={`w-full text-left px-3.5 py-2 hover:bg-slate-50 rounded-lg flex items-center gap-2.5 font-semibold transition-all ${
+                activeTab === "feed" && !activeSearch ? "bg-[#e7f3ff] text-[#1877f2]" : "text-slate-700"
               }`}
             >
               <Globe className="h-4 w-4" />
@@ -999,8 +962,8 @@ export default function HomeClient({ assignments }: HomeClientProps) {
             {session && (
               <button
                 onClick={() => handleTabChange("myposts")}
-                className={`w-full text-left px-4 py-2 hover:bg-[#f2f3f5] flex items-center gap-2.5 font-semibold ${
-                  activeTab === "myposts" ? "bg-[#e7f3ff] text-[#1877f2] border-l-4 border-[#1877f2] pl-3" : "text-[#1c1e21]"
+                className={`w-full text-left px-3.5 py-2 hover:bg-slate-50 rounded-lg flex items-center gap-2.5 font-semibold transition-all ${
+                  activeTab === "myposts" ? "bg-[#e7f3ff] text-[#1877f2]" : "text-slate-700"
                 }`}
               >
                 <User className="h-4 w-4" />
@@ -1009,8 +972,8 @@ export default function HomeClient({ assignments }: HomeClientProps) {
             )}
             <button
               onClick={() => handleTabChange("leaderboard")}
-              className={`w-full text-left px-4 py-2 hover:bg-[#f2f3f5] flex items-center gap-2.5 font-semibold ${
-                activeTab === "leaderboard" ? "bg-[#e7f3ff] text-[#1877f2] border-l-4 border-[#1877f2] pl-3" : "text-[#1c1e21]"
+              className={`w-full text-left px-3.5 py-2 hover:bg-slate-50 rounded-lg flex items-center gap-2.5 font-semibold transition-all ${
+                activeTab === "leaderboard" ? "bg-[#e7f3ff] text-[#1877f2]" : "text-slate-700"
               }`}
             >
               <Award className="h-4 w-4" />
@@ -1027,11 +990,11 @@ export default function HomeClient({ assignments }: HomeClientProps) {
           
           {/* Active Search Filter Badge */}
           {activeSearch && (
-            <div className="bg-[#e7f3ff] border border-[#dadde1] rounded-sm p-3 flex items-center justify-between text-sm text-[#1877f2] shadow-sm font-semibold">
+            <div className="bg-[#e7f3ff] border border-blue-200 rounded-xl p-3 flex items-center justify-between text-sm text-[#1877f2] shadow-sm font-semibold">
               <span>Showing search results for: "{activeSearch}"</span>
               <button
                 onClick={() => router.push("/")}
-                className="text-xs bg-[#dadde1] hover:bg-[#c9ccd1] text-gray-700 px-2 py-0.5 rounded-sm"
+                className="text-xs bg-white border border-blue-200 hover:bg-blue-50 text-[#1877f2] px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
               >
                 Show All
               </button>
@@ -1040,49 +1003,47 @@ export default function HomeClient({ assignments }: HomeClientProps) {
 
           {/* Feed recommendation type selector tab (For You / Latest) */}
           {activeTab === "feed" && !activeSearch && (
-            <div className="bg-white border border-[#dadde1] rounded-sm shadow-sm flex overflow-hidden">
+            <div className="bg-slate-100 border border-slate-200/50 rounded-xl p-1 shadow-sm flex gap-1">
               <button
                 onClick={() => setFeedType("for-you")}
-                className="flex-1 py-3 text-center text-xs font-bold uppercase transition-all relative cursor-pointer focus:outline-none"
+                className={`flex-1 py-2 text-center text-xs font-bold uppercase transition-all rounded-lg relative cursor-pointer focus:outline-none ${
+                  feedType === "for-you"
+                    ? "bg-white text-[#1877f2] shadow-xs"
+                    : "text-[#65676b] hover:text-[#1c1e21] hover:bg-slate-200/40"
+                }`}
               >
-                <span className={feedType === "for-you" ? "text-[#1877f2]" : "text-[#65676b] hover:text-[#1c1e21]"}>
-                  For You
-                </span>
-                {feedType === "for-you" && (
-                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-16 h-[3px] bg-[#1877f2] rounded-t-full" />
-                )}
+                For You
               </button>
               <button
                 onClick={() => setFeedType("latest")}
-                className="flex-1 py-3 text-center text-xs font-bold uppercase transition-all relative border-l border-gray-100 cursor-pointer focus:outline-none"
+                className={`flex-1 py-2 text-center text-xs font-bold uppercase transition-all rounded-lg relative cursor-pointer focus:outline-none ${
+                  feedType === "latest"
+                    ? "bg-white text-[#1877f2] shadow-xs"
+                    : "text-[#65676b] hover:text-[#1c1e21] hover:bg-slate-200/40"
+                }`}
               >
-                <span className={feedType === "latest" ? "text-[#1877f2]" : "text-[#65676b] hover:text-[#1c1e21]"}>
-                  Latest
-                </span>
-                {feedType === "latest" && (
-                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-16 h-[3px] bg-[#1877f2] rounded-t-full" />
-                )}
+                Latest
               </button>
             </div>
           )}
 
           {/* Post Composer Card */}
           {session && activeTab !== "leaderboard" && (
-            <div className="bg-white border border-[#dadde1] rounded-sm shadow-sm overflow-hidden">
+            <div className="bg-white border border-[#e4e6eb] rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] overflow-hidden">
               {/* Header with Tabs */}
-              <div className="bg-[#f5f6f7] px-3 border-b border-[#dadde1] flex justify-between items-center">
-                <div className="flex items-center gap-1.5 font-bold text-xs text-[#4b4f56] uppercase py-2">
-                  <Code className="h-3.5 w-3.5 text-[#3b5998]" />
+              <div className="bg-slate-50 px-4 py-2 border-b border-slate-100 flex justify-between items-center flex-wrap gap-2">
+                <div className="flex items-center gap-1.5 font-bold text-xs text-slate-700 uppercase">
+                  <Code className="h-3.5 w-3.5 text-[#1877f2]" />
                   Create Post
                 </div>
-                <div className="flex bg-white border-l border-r border-t border-[#dadde1] rounded-t-sm overflow-hidden self-end">
+                <div className="flex bg-slate-100 rounded-lg p-0.5">
                   <button
                     type="button"
                     onClick={() => setEditorTab("write")}
-                    className={`px-3 py-1.5 text-[11px] font-bold uppercase transition-all duration-150 ${
+                    className={`px-3 py-1 text-[11px] font-bold uppercase transition-all duration-150 rounded-md cursor-pointer ${
                       editorTab === "write"
-                        ? "border-b-2 border-[#3b5998] text-[#3b5998] bg-white"
-                        : "border-b-2 border-transparent text-[#65676b] hover:text-[#1c1e21] bg-[#f5f6f7]"
+                        ? "text-[#1877f2] bg-white shadow-xs"
+                        : "text-[#65676b] hover:text-[#1c1e21]"
                     }`}
                   >
                     Write
@@ -1090,10 +1051,10 @@ export default function HomeClient({ assignments }: HomeClientProps) {
                   <button
                     type="button"
                     onClick={() => setEditorTab("preview")}
-                    className={`px-3 py-1.5 text-[11px] font-bold uppercase transition-all duration-150 ${
+                    className={`px-3 py-1 text-[11px] font-bold uppercase transition-all duration-150 rounded-md cursor-pointer ${
                       editorTab === "preview"
-                        ? "border-b-2 border-[#3b5998] text-[#3b5998] bg-white"
-                        : "border-b-2 border-transparent text-[#65676b] hover:text-[#1c1e21] bg-[#f5f6f7]"
+                        ? "text-[#1877f2] bg-white shadow-xs"
+                        : "text-[#65676b] hover:text-[#1c1e21]"
                     }`}
                   >
                     Preview
@@ -1189,7 +1150,7 @@ export default function HomeClient({ assignments }: HomeClientProps) {
                       onChange={(e) => setPostContent(e.target.value)}
                       onSelect={handleTextareaSelection}
                       rows={4}
-                      className="w-full text-sm resize-none focus:outline-none border border-transparent focus:border-gray-200 p-1.5 rounded-sm"
+                      className="w-full text-sm resize-none focus:outline-none border border-transparent focus:border-slate-100 p-2.5 rounded-lg text-slate-800 placeholder-slate-400"
                       maxLength={1000}
                     />
                   </div>
@@ -1234,31 +1195,23 @@ export default function HomeClient({ assignments }: HomeClientProps) {
                         <button
                           type="button"
                           disabled={isExportingComposer}
-                          onClick={() => handleExportComposerPreview('png')}
+                          onClick={() => handleExportComposerPreview()}
                           className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-[#4b4f56] font-bold rounded flex items-center gap-1 transition-colors disabled:opacity-50 cursor-pointer"
                         >
                           <Download className="h-3 w-3" /> Export PNG
-                        </button>
-                        <button
-                          type="button"
-                          disabled={isExportingComposer}
-                          onClick={() => handleExportComposerPreview('pdf')}
-                          className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-[#4b4f56] font-bold rounded flex items-center gap-1 transition-colors disabled:opacity-50 cursor-pointer"
-                        >
-                          <Download className="h-3 w-3" /> Export PDF
                         </button>
                       </div>
                     )}
                   </div>
                 )}
-                <div className="mt-2 pt-2 border-t border-[#dadde1] flex justify-between items-center">
+                <div className="mt-2 pt-2 border-t border-slate-100 flex justify-between items-center">
                   <span className="text-[10px] text-gray-500 font-mono">
                     Post will save to database and sync to GitHub
                   </span>
                   <button
                     type="submit"
                     disabled={!postContent.trim() || isSubmitting}
-                    className="bg-[#3b5998] hover:bg-[#304d8a] disabled:bg-[#8a9cc2] text-white text-xs font-bold px-4 py-1.5 rounded-sm active:transform active:scale-[0.98] shadow-sm flex items-center gap-1.5"
+                    className="bg-[#1877f2] hover:bg-[#166fe5] disabled:bg-[#8a9cc2] text-white text-xs font-bold px-5 py-2 rounded-lg active:transform active:scale-[0.98] shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
                   >
                     {isSubmitting && <Loader2 className="h-3 w-3 animate-spin" />}
                     Post
@@ -1271,11 +1224,11 @@ export default function HomeClient({ assignments }: HomeClientProps) {
           {/* Main Feed Content Panel */}
           {activeTab === "leaderboard" ? (
             /* Tab: Leaderboard List */
-            <div className="bg-white border border-[#dadde1] rounded-sm shadow-sm">
-              <div className="bg-[#f5f6f7] px-4 py-3 border-b border-[#dadde1] font-bold text-sm text-[#4b4f56]">
+            <div className="bg-white border border-[#e4e6eb] rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] overflow-hidden">
+              <div className="bg-slate-50 px-4 py-3 border-b border-slate-100 font-bold text-sm text-[#4b4f56]">
                 🎖️ Developer Leaderboard
               </div>
-              <div className="divide-y divide-[#dadde1]">
+              <div className="divide-y divide-slate-100">
                 {topDevs.map((dev, idx) => (
                   <div key={dev.id} className="p-4 flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
@@ -1322,14 +1275,14 @@ export default function HomeClient({ assignments }: HomeClientProps) {
                   <span className="ml-2 text-sm text-gray-500 font-semibold">Loading feed posts...</span>
                 </div>
               ) : posts.length === 0 ? (
-                <div className="bg-white border border-[#dadde1] rounded-sm p-8 text-center text-gray-500">
+                <div className="bg-white border border-[#e4e6eb] rounded-xl p-8 text-center text-gray-500 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
                   <Globe className="h-8 w-8 mx-auto text-gray-300 mb-2" />
-                  <p className="font-bold text-sm">No posts found</p>
+                  <p className="font-bold text-sm text-slate-700">No posts found</p>
                   <p className="text-xs text-gray-400 mt-1">Be the first to share an update on the network!</p>
                 </div>
               ) : (
                 posts.map((post) => (
-                  <div key={post.id} id={`post-card-${post.id}`} className="bg-white border border-[#dadde1] rounded-sm shadow-sm relative">
+                  <div key={post.id} id={`post-card-${post.id}`} className="bg-white border border-[#e4e6eb] rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.05)] transition-all duration-300 relative overflow-hidden">
                     
                     {/* Post Author Header */}
                     <div className="p-3 flex items-center justify-between">
@@ -1395,10 +1348,10 @@ export default function HomeClient({ assignments }: HomeClientProps) {
                     </div>
 
                     {/* Like, Comment & Download Buttons */}
-                    <div className="px-1 py-1 grid grid-cols-3 gap-1 text-[#65676b] font-bold text-xs text-center border-t border-[#dadde1] export-ignore">
+                    <div className="px-1 py-1 grid grid-cols-3 gap-1 text-[#65676b] font-bold text-xs text-center border-t border-slate-100 bg-slate-50/30 export-ignore">
                       <button
                         onClick={() => handleLikePost(post.id)}
-                        className={`py-1.5 hover:bg-[#f2f3f5] rounded flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
+                        className={`py-2 hover:bg-slate-100/70 rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
                           post.liked_by_me ? "text-[#1877f2]" : ""
                         }`}
                       >
@@ -1410,61 +1363,31 @@ export default function HomeClient({ assignments }: HomeClientProps) {
                           const input = document.getElementById(`comment-input-${post.id}`);
                           if (input) input.focus();
                         }}
-                        className="py-1.5 hover:bg-[#f2f3f5] rounded flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                        className="py-2 hover:bg-slate-100/70 rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                       >
                         <MessageSquare className="h-3.5 w-3.5" />
                         Comment
                       </button>
-                      <div className="relative">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setActiveExportDropdown(activeExportDropdown === post.id ? null : post.id);
-                          }}
-                          disabled={exportingPostId === post.id}
-                          className="w-full py-1.5 hover:bg-[#f2f3f5] rounded flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
-                        >
-                          {exportingPostId === post.id ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin text-[#3b5998]" />
-                          ) : (
-                            <Download className="h-3.5 w-3.5" />
-                          )}
-                          Download
-                        </button>
-                        {activeExportDropdown === post.id && (
-                          <>
-                            <div 
-                              className="fixed inset-0 z-30" 
-                              onClick={() => setActiveExportDropdown(null)} 
-                            />
-                            <div className="absolute right-0 bottom-full mb-1 bg-white border border-[#dadde1] rounded shadow-lg py-1 z-40 w-32 text-left animate-in fade-in slide-in-from-bottom-2 duration-150">
-                              <button
-                                onClick={() => {
-                                  setActiveExportDropdown(null);
-                                  handleExportPost(post.id, 'png');
-                                }}
-                                className="w-full px-3 py-1.5 text-xs text-gray-700 hover:bg-[#f2f3f5] flex items-center gap-2 font-semibold cursor-pointer"
-                              >
-                                <span>PNG Image</span>
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setActiveExportDropdown(null);
-                                  handleExportPost(post.id, 'pdf');
-                                }}
-                                className="w-full px-3 py-1.5 text-xs text-gray-700 hover:bg-[#f2f3f5] flex items-center gap-2 font-semibold cursor-pointer"
-                              >
-                                <span>PDF Document</span>
-                              </button>
-                            </div>
-                          </>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleExportPost(post.id);
+                        }}
+                        disabled={exportingPostId === post.id}
+                        className="py-2 hover:bg-slate-100/70 rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                      >
+                        {exportingPostId === post.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin text-[#1877f2]" />
+                        ) : (
+                          <Download className="h-3.5 w-3.5" />
                         )}
-                      </div>
+                        Download PNG
+                      </button>
                     </div>
 
                     {/* Comments Section */}
                     {post.comments && post.comments.length > 0 && (
-                      <div className="bg-[#f5f6f7] border-t border-[#dadde1] px-3 py-2 space-y-2.5 comments-section export-ignore">
+                      <div className="bg-slate-50 border-t border-slate-100 px-4 py-3 space-y-3 comments-section export-ignore">
                         {post.comments.map((comment: any) => (
                           <div key={comment.id} className="flex items-start gap-2 text-xs">
                             <Link
@@ -1505,7 +1428,7 @@ export default function HomeClient({ assignments }: HomeClientProps) {
 
                     {/* Write Comment Box */}
                     {session ? (
-                      <div className="p-2 border-t border-[#dadde1] bg-[#f5f6f7] flex items-center gap-2 export-ignore">
+                      <div className="p-3 border-t border-slate-100 bg-slate-50/50 flex items-center gap-2 export-ignore">
                         <input
                           id={`comment-input-${post.id}`}
                           type="text"
@@ -1519,18 +1442,18 @@ export default function HomeClient({ assignments }: HomeClientProps) {
                               handleCommentSubmit(post.id);
                             }
                           }}
-                          className="flex-1 bg-white text-xs px-3 py-1.5 border border-[#dadde1] rounded-full focus:outline-none"
+                          className="flex-1 bg-white text-xs px-4 py-2 border border-slate-200 rounded-full focus:outline-none focus:ring-1 focus:ring-[#1877f2] focus:border-[#1877f2] text-slate-800"
                         />
                         <button
                           onClick={() => handleCommentSubmit(post.id)}
                           disabled={!(commentInputs[post.id] ?? "").trim() || commentingPostId === post.id}
-                          className="bg-transparent hover:bg-[#e4e6eb] disabled:opacity-30 text-[#3b5998] p-1.5 rounded-full flex items-center justify-center shrink-0"
+                          className="bg-transparent hover:bg-slate-200/60 disabled:opacity-30 text-[#1877f2] p-2 rounded-full flex items-center justify-center shrink-0 transition-colors cursor-pointer"
                         >
                           <Send className="h-3.5 w-3.5" />
                         </button>
                       </div>
                     ) : (
-                      <div className="p-2 border-t border-[#dadde1] bg-[#f5f6f7] text-[11px] text-[#65676b] text-center export-ignore">
+                      <div className="p-3 border-t border-slate-100 bg-slate-50 text-[11px] text-[#65676b] text-center export-ignore">
                         Please <button onClick={handleSignIn} className="text-[#1877f2] font-bold hover:underline">Sign In</button> to comment locally, or{" "}
                         {post.github_issue_number ? (
                           <Link
@@ -1556,7 +1479,7 @@ export default function HomeClient({ assignments }: HomeClientProps) {
                   <button
                     onClick={loadMore}
                     disabled={loadingMore}
-                    className="w-full bg-[#f5f6f7] hover:bg-[#e4e6eb] active:bg-[#d8dadf] border border-[#ccd0d5] text-gray-700 font-bold text-xs py-2 rounded-sm transition flex items-center justify-center gap-1.5 disabled:opacity-50"
+                    className="w-full bg-white hover:bg-slate-50 active:bg-slate-100 border border-slate-200 text-slate-700 font-bold text-xs py-2.5 rounded-lg transition-all shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
                   >
                     {loadingMore ? (
                       <>
@@ -1577,13 +1500,13 @@ export default function HomeClient({ assignments }: HomeClientProps) {
         <section className="col-span-12 md:col-span-3 space-y-4">
           
           {/* Active Network Status */}
-          <div className="bg-white border border-[#dadde1] rounded-sm p-3.5 shadow-sm text-xs space-y-2">
-            <h4 className="font-bold text-[#4b4f56] uppercase tracking-wide text-[10px]">
+          <div className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)] text-xs space-y-2">
+            <h4 className="font-bold text-slate-500 uppercase tracking-wide text-[10px]">
               Network Status
             </h4>
-            <div className="flex items-center justify-between text-gray-700">
+            <div className="flex items-center justify-between text-slate-700">
               <span className="flex items-center gap-1.5">
-                <Globe className="h-3.5 w-3.5 text-gray-500" />
+                <Globe className="h-3.5 w-3.5 text-slate-400" />
                 Active Developers
               </span>
               <span className="flex items-center gap-1">
@@ -1591,18 +1514,18 @@ export default function HomeClient({ assignments }: HomeClientProps) {
                 <span className="font-bold">{activeCount} online</span>
               </span>
             </div>
-            <div className="flex items-center justify-between text-gray-700">
+            <div className="flex items-center justify-between text-slate-700">
               <span className="flex items-center gap-1.5 font-sans">
-                <Award className="h-3.5 w-3.5 text-gray-500" />
+                <Award className="h-3.5 w-3.5 text-slate-400" />
                 Rankings Type
               </span>
-              <span className="font-bold text-gray-600">Global</span>
+              <span className="font-bold text-slate-600">Global</span>
             </div>
           </div>
 
           {/* Top Contributor Showcase (fb 2015 widget style) */}
-          <div className="bg-white border border-[#dadde1] rounded-sm p-3 shadow-sm">
-            <h4 className="font-bold text-[#4b4f56] uppercase tracking-wide text-[10px] pb-2 border-b border-[# dadde1] mb-2.5">
+          <div className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+            <h4 className="font-bold text-slate-500 uppercase tracking-wide text-[10px] pb-2 border-b border-slate-100 mb-2.5">
               Top Contributors
             </h4>
             <div className="space-y-3">
@@ -1610,7 +1533,7 @@ export default function HomeClient({ assignments }: HomeClientProps) {
                 <div key={dev.id} className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-gray-400 w-3">{idx + 1}</span>
-                    <div className="relative h-6 w-6 rounded-full overflow-hidden border border-gray-100">
+                    <div className="relative h-6 w-6 rounded-full overflow-hidden border border-slate-100">
                       <Image
                         src={dev.avatar_url ?? "/default-avatar.png"}
                         alt={dev.github_login}
@@ -1621,12 +1544,12 @@ export default function HomeClient({ assignments }: HomeClientProps) {
                     </div>
                     <Link
                       href={`/dev/${dev.github_login}`}
-                      className="font-semibold hover:underline text-[#3b5998] truncate max-w-[80px]"
+                      className="font-semibold hover:underline text-[#1877f2] truncate max-w-[80px]"
                     >
                       @{dev.github_login}
                     </Link>
                   </div>
-                  <span className="font-mono text-gray-500 text-[10px]">
+                  <span className="font-mono text-slate-500 text-[10px]">
                     {dev.contributions} pts
                   </span>
                 </div>
@@ -1634,7 +1557,7 @@ export default function HomeClient({ assignments }: HomeClientProps) {
             </div>
             <button
               onClick={() => handleTabChange("leaderboard")}
-              className="mt-3.5 w-full text-center block bg-[#f5f6f7] hover:bg-[#ebedf0] text-[#3b5998] border border-[#dadde1] py-1 text-[10px] font-bold rounded-sm shadow-sm"
+              className="mt-3.5 w-full text-center block bg-slate-50 hover:bg-slate-100/80 text-[#1877f2] border border-slate-200 py-1.5 text-[10px] font-bold rounded-lg shadow-xs transition-colors cursor-pointer"
             >
               See All Rankings
             </button>
@@ -1644,7 +1567,7 @@ export default function HomeClient({ assignments }: HomeClientProps) {
       </main>
 
       {/* Footer bar */}
-      <footer className="bg-white border-t border-[#dadde1] py-6 mt-12 mb-16 md:mb-0 text-center text-xs text-gray-500">
+      <footer className="bg-white border-t border-[#dadde1] py-6 mt-12 mb-28 md:mb-0 text-center text-xs text-gray-500">
         <div className="max-w-6xl mx-auto px-4 space-y-1">
           <p>© 2026 Cluster Org • All Rights Reserved</p>
         </div>
@@ -1657,7 +1580,7 @@ export default function HomeClient({ assignments }: HomeClientProps) {
           handleTabChange(tab);
         }}
         onSearchFocus={() => {
-          const input = document.querySelector('input[placeholder="Search posts..."]') as HTMLInputElement;
+          const input = document.querySelector('input[placeholder="Search posts or @username..."]') as HTMLInputElement;
           if (input) {
             input.focus();
             input.scrollIntoView({ behavior: "smooth", block: "center" });

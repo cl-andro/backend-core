@@ -16,7 +16,6 @@ import {
   Download
 } from "lucide-react";
 import { toPng } from "html-to-image";
-import jsPDF from "jspdf";
 import MarkdownViewer from "@/components/MarkdownViewer";
 
 interface PostModalProps {
@@ -218,7 +217,7 @@ export default function PostModal({ isOpen, onClose, onPostCreated, session, cur
     }, 0);
   };
 
-  const handleExportModalPreview = async (type: 'png' | 'pdf') => {
+  const handleExportModalPreview = async () => {
     const cardElement = document.getElementById('modal-preview-card');
     if (!cardElement) return;
 
@@ -253,21 +252,10 @@ export default function PostModal({ isOpen, onClose, onPostCreated, session, cur
         dataUrl = await capture(true);
       }
 
-      if (type === 'png') {
-        const link = document.createElement('a');
-        link.download = `draft-post.png`;
-        link.href = dataUrl;
-        link.click();
-      } else if (type === 'pdf') {
-        const pdf = new jsPDF({
-          orientation: 'portrait',
-          unit: 'px',
-          format: [cardElement.clientWidth + 40, cardElement.clientHeight + 40],
-          hotfixes: ['px_scaling']
-        });
-        pdf.addImage(dataUrl, 'PNG', 20, 20, cardElement.clientWidth, cardElement.clientHeight);
-        pdf.save(`draft-post.pdf`);
-      }
+      const link = document.createElement('a');
+      link.download = `draft-post.png`;
+      link.href = dataUrl;
+      link.click();
     } catch (error) {
       console.error('Composer export failed:', error);
       alert('Failed to export preview');
@@ -359,41 +347,41 @@ export default function PostModal({ isOpen, onClose, onPostCreated, session, cur
   if (!isOpen || !mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-md transition-all duration-300 animate-in fade-in">
+    <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-md transition-all duration-300 animate-in fade-in">
       {/* Click outside to close */}
       <div className="absolute inset-0" onClick={onClose} />
 
       {/* Modal Container */}
-      <div className="relative bg-white border border-[#dadde1] w-full max-w-xl rounded-t-lg sm:rounded-lg shadow-2xl overflow-hidden z-10 flex flex-col max-h-[90vh] animate-in slide-in-from-bottom-8 duration-200">
+      <div className="relative bg-white border border-slate-200/60 w-full max-w-xl rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden z-10 flex flex-col max-h-[90vh] animate-in slide-in-from-bottom-8 duration-200">
         
         {/* Header */}
-        <div className="bg-[#f5f6f7] px-4 py-3 border-b border-[#dadde1] flex justify-between items-center shrink-0">
-          <div className="flex items-center gap-1.5 font-bold text-xs text-[#4b4f56] uppercase">
-            <Code className="h-3.5 w-3.5 text-[#3b5998]" />
+        <div className="bg-slate-50 px-4 py-3.5 border-b border-slate-100 flex justify-between items-center shrink-0">
+          <div className="flex items-center gap-1.5 font-bold text-xs text-slate-700 uppercase">
+            <Code className="h-3.5 w-3.5 text-[#1877f2]" />
             Create Post
           </div>
           <button 
             type="button" 
             onClick={onClose} 
-            className="text-gray-500 hover:text-black p-1 hover:bg-[#e4e6eb] rounded transition-colors"
+            className="text-gray-500 hover:text-black p-1.5 hover:bg-slate-200/60 rounded-full transition-colors cursor-pointer"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
         {/* Tab Selection */}
-        <div className="flex justify-between items-center px-4 bg-[#f5f6f7] border-b border-[#dadde1] shrink-0">
-          <div className="text-[10px] text-gray-500 font-mono">
+        <div className="flex justify-between items-center px-4 py-2 bg-slate-50 border-b border-slate-100 shrink-0 flex-wrap gap-2">
+          <div className="text-[10px] text-slate-500 font-mono">
             Save to DB & Sync with GitHub
           </div>
-          <div className="flex bg-white border-l border-r border-t border-[#dadde1] rounded-t-sm overflow-hidden mt-1.5">
+          <div className="flex bg-slate-100 rounded-lg p-0.5">
             <button
               type="button"
               onClick={() => setEditorTab("write")}
-              className={`px-4 py-1.5 text-[11px] font-bold uppercase transition-all duration-150 ${
+              className={`px-3.5 py-1 text-[11px] font-bold uppercase transition-all duration-150 rounded-md cursor-pointer ${
                 editorTab === "write"
-                  ? "border-b-2 border-[#3b5998] text-[#3b5998] bg-white"
-                  : "border-b-2 border-transparent text-[#65676b] hover:text-[#1c1e21] bg-[#f5f6f7]"
+                  ? "text-[#1877f2] bg-white shadow-xs"
+                  : "text-[#65676b] hover:text-[#1c1e21]"
               }`}
             >
               Write
@@ -401,10 +389,10 @@ export default function PostModal({ isOpen, onClose, onPostCreated, session, cur
             <button
               type="button"
               onClick={() => setEditorTab("preview")}
-              className={`px-4 py-1.5 text-[11px] font-bold uppercase transition-all duration-150 ${
+              className={`px-3.5 py-1 text-[11px] font-bold uppercase transition-all duration-150 rounded-md cursor-pointer ${
                 editorTab === "preview"
-                  ? "border-b-2 border-[#3b5998] text-[#3b5998] bg-white"
-                  : "border-b-2 border-transparent text-[#65676b] hover:text-[#1c1e21] bg-[#f5f6f7]"
+                  ? "text-[#1877f2] bg-white shadow-xs"
+                  : "text-[#65676b] hover:text-[#1c1e21]"
               }`}
             >
               Preview
@@ -501,15 +489,15 @@ export default function PostModal({ isOpen, onClose, onPostCreated, session, cur
                 value={postContent}
                 onChange={(e) => setPostContent(e.target.value)}
                 onSelect={handleTextareaSelection}
-                className="flex-1 w-full text-sm resize-none focus:outline-none border-transparent p-1.5 rounded-sm min-h-[150px]"
+                className="flex-1 w-full text-sm resize-none focus:outline-none border-transparent p-2.5 rounded-lg text-slate-800 placeholder-slate-400 min-h-[150px]"
                 maxLength={1000}
               />
             </div>
           ) : (
             <div className="flex-1 overflow-y-auto space-y-2 flex flex-col min-h-0">
-              <div id="modal-preview-card" className="p-3 border border-dashed border-gray-300 rounded bg-gray-50 select-text relative flex-1 min-h-[200px]">
+              <div id="modal-preview-card" className="p-3 border border-dashed border-slate-300 rounded-xl bg-slate-50/50 select-text relative flex-1 min-h-[200px]">
                 {postContent.trim() ? (
-                  <div className="space-y-3 bg-white p-4 border border-[#dadde1] rounded shadow-xs text-left">
+                  <div className="space-y-3 bg-white p-4 border border-slate-200/80 rounded-xl shadow-xs text-left">
                     <div className="flex items-center gap-2.5">
                       <div className="relative h-9 w-9 rounded-full overflow-hidden border border-gray-200 shrink-0">
                         <img
@@ -546,18 +534,10 @@ export default function PostModal({ isOpen, onClose, onPostCreated, session, cur
                   <button
                     type="button"
                     disabled={isExportingComposer}
-                    onClick={() => handleExportModalPreview('png')}
+                    onClick={() => handleExportModalPreview()}
                     className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-[#4b4f56] font-bold rounded flex items-center gap-1 transition-colors disabled:opacity-50 cursor-pointer"
                   >
                     <Download className="h-3 w-3" /> Export PNG
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isExportingComposer}
-                    onClick={() => handleExportModalPreview('pdf')}
-                    className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-[#4b4f56] font-bold rounded flex items-center gap-1 transition-colors disabled:opacity-50 cursor-pointer"
-                  >
-                    <Download className="h-3 w-3" /> Export PDF
                   </button>
                 </div>
               )}
@@ -565,22 +545,22 @@ export default function PostModal({ isOpen, onClose, onPostCreated, session, cur
           )}
 
           {/* Footer Controls */}
-          <div className="mt-4 pt-3 border-t border-[#dadde1] flex justify-between items-center shrink-0">
-            <span className="text-[10px] text-gray-400 font-mono">
+          <div className="mt-4 pt-3 border-t border-slate-100 flex justify-between items-center shrink-0">
+            <span className="text-[10px] text-slate-400 font-mono">
               {postContent.length}/1000 characters
             </span>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={onClose}
-                className="bg-gray-100 hover:bg-gray-200 text-[#4b4f56] text-xs font-bold px-4 py-2 rounded transition-colors"
+                className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-4 py-2 rounded-lg transition-colors cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={!postContent.trim() || isSubmitting}
-                className="bg-[#3b5998] hover:bg-[#304d8a] disabled:bg-[#8a9cc2] text-white text-xs font-bold px-5 py-2 rounded transition-all shadow-sm flex items-center gap-1.5"
+                className="bg-[#1877f2] hover:bg-[#166fe5] disabled:bg-[#8a9cc2] text-white text-xs font-bold px-5 py-2 rounded-lg transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
               >
                 {isSubmitting && <Loader2 className="h-3 w-3 animate-spin" />}
                 Share

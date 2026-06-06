@@ -1,0 +1,50 @@
+/* ─── App Layout Styles (Fixed Header & Sidebar, Scrollable Main) ─── */
+
+/* Lock the body when layout-locked class is explicitly added (useful for dashboards, editors) */
+body.layout-locked {
+  margin: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Master container holding everything */
+.layout-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* 1. FIXED TOP HEADER */
+.layout-header {
+  flex-shrink: 0; /* Prevents the header from crushing */
+  height: 60px; /* Adjust this to your header's height */
+  background: var(--color-bg-raised);
+  border-bottom: 1px solid var(--color-border-light);
+  z-index: 50; /* Keeps it above the content */
+}
+
+/* Container for the bottom half (Sidebar + Main Content) */
+.layout-body {
+  display: flex;
+  flex: 1; /* Takes up all remaining vertical space below the header */
+  overflow: hidden; /* Prevents content from breaking out of the bottom */
+}
+
+/* 2. FIXED LEFT SIDEBAR */
+.layout-sidebar {
+  flex-shrink: 0; /* Prevents the sidebar from crushing */
+  width: 250px; /* Adjust to your sidebar's width */
+  background: var(--color-bg);
+  border-right: 1px solid var(--color-border-light);
+  /* Optional: If the sidebar has lots of links, let it scroll independently */
+  overflow-y: auto; 
+}
+
+/* 3. SCROLLABLE MIDDLE PART */
+.layout-main {
+  flex: 1; /* Takes up all remaining horizontal space */
+  overflow-y: auto; /* THIS is what makes the middle part scroll! */
+  background: var(--color-bg);
+  padding: 20px; /* Give your content some breathing room */
+}

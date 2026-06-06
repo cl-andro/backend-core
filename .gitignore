@@ -49,6 +49,7 @@ docs/cloudflare-setup.md
 
 # claude code local settings
 .claude/
+.antigravitycli/
 
 trace/
 docs/
@@ -72,9 +73,17 @@ packages/vscode-extension/*.vsix
 
 scripts/*
 !scripts/sync-posts.mjs
-!scripts/generate-recommendations.mjs
-
-.antigravitycli/
 
 public/cozy/
 
+# Local sign-in guide
+signin_problem.md
+
+# Local helper script
+connect-device.sh
+
+# Local ADB guide
+connect-adb.md
+
+# JetBrains IDE
+.idea/

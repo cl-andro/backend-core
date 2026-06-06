@@ -11,13 +11,20 @@ import {
   PlusCircle,
   AlertCircle,
   Loader2,
-  Download
+  Download,
+  Bold,
+  Italic,
+  Link2,
+  List,
+  ListOrdered,
+  CheckSquare,
+  Quote,
+  Code
 } from "lucide-react";
 import { toPng } from "html-to-image";
-import jsPDF from "jspdf";
 import Image from "next/image";
 import Link from "next/link";
-import { createBrowserSupabase } from "@/lib/supabase";
+import { createBrowserSupabase, triggerGitHubLogin } from "@/lib/supabase";
 import BottomNav from "@/components/BottomNav";
 import MarkdownViewer from "@/components/MarkdownViewer";
 import PostModal from "@/components/PostModal";
@@ -77,8 +84,252 @@ export default function ProfileClient({
   const [currentDev, setCurrentDev] = useState<any>(null);
 
   // Export/Download states
-  const [activeExportDropdown, setActiveExportDropdown] = useState<number | null>(null);
   const [exportingPostId, setExportingPostId] = useState<number | null>(null);
+
+  // Rich Composer States
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [editorTab, setEditorTab] = useState<"write" | "preview">("write");
+  const [linkModalOpen, setLinkModalOpen] = useState(false);
+  const [linkUrl, setLinkUrl] = useState("");
+  const [linkText, setLinkText] = useState("");
+  const [textareaSelRange, setTextareaSelRange] = useState<{ start: number; end: number } | null>(null);
+  const [isExportingComposer, setIsExportingComposer] = useState(false);
+
+  const handleFormat = (type: "bold" | "italic" | "code" | "codeblock" | "link" | "quote" | "bullet" | "ordered" | "task") => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+    const selectedText = text.substring(start, end);
+
+    let insertion = "";
+    let selectionOffsetStart = 0;
+    let selectionOffsetEnd = 0;
+
+    switch (type) {
+      case "bold":
+        if (selectedText) {
+          insertion = `**${selectedText}**`;
+          selectionOffsetStart = 2;
+          selectionOffsetEnd = insertion.length - 2;
+        } else {
+          insertion = `****`;
+          selectionOffsetStart = 2;
+          selectionOffsetEnd = 2;
+        }
+        break;
+      case "italic":
+        if (selectedText) {
+          insertion = `*${selectedText}*`;
+          selectionOffsetStart = 1;
+          selectionOffsetEnd = insertion.length - 1;
+        } else {
+          insertion = `**`;
+          selectionOffsetStart = 1;
+          selectionOffsetEnd = 1;
+        }
+        break;
+      case "code":
+        if (selectedText) {
+          insertion = `\`${selectedText}\``;
+          selectionOffsetStart = 1;
+          selectionOffsetEnd = insertion.length - 1;
+        } else {
+          insertion = `\`\``;
+          selectionOffsetStart = 1;
+          selectionOffsetEnd = 1;
+        }
+        break;
+      case "codeblock":
+        if (selectedText) {
+          insertion = `\n\`\`\`\n${selectedText}\n\`\`\`\n`;
+          selectionOffsetStart = 5;
+          selectionOffsetEnd = insertion.length - 5;
+        } else {
+          insertion = `\n\`\`\`\n\n\`\`\`\n`;
+          selectionOffsetStart = 5;
+          selectionOffsetEnd = 5;
+        }
+        break;
+      case "link":
+        setTextareaSelRange({ start, end });
+        setLinkText(selectedText);
+        setLinkUrl("");
+        setLinkModalOpen(true);
+        return;
+      case "quote":
+        if (selectedText) {
+          insertion = `\n> ${selectedText}\n`;
+          selectionOffsetStart = 3;
+          selectionOffsetEnd = insertion.length - 1;
+        } else {
+          insertion = `\n> `;
+          selectionOffsetStart = 3;
+          selectionOffsetEnd = 3;
+        }
+        break;
+      case "bullet":
+        if (selectedText) {
+          insertion = `\n- ${selectedText}`;
+          selectionOffsetStart = 3;
+          selectionOffsetEnd = insertion.length;
+        } else {
+          insertion = `\n- `;
+          selectionOffsetStart = 3;
+          selectionOffsetEnd = 3;
+        }
+        break;
+      case "ordered":
+        if (selectedText) {
+          insertion = `\n1. ${selectedText}`;
+          selectionOffsetStart = 4;
+          selectionOffsetEnd = insertion.length;
+        } else {
+          insertion = `\n1. `;
+          selectionOffsetStart = 4;
+          selectionOffsetEnd = 4;
+        }
+        break;
+      case "task":
+        if (selectedText) {
+          insertion = `\n- [ ] ${selectedText}`;
+          selectionOffsetStart = 8;
+          selectionOffsetEnd = insertion.length;
+        } else {
+          insertion = `\n- [ ] `;
+          selectionOffsetStart = 7;
+          selectionOffsetEnd = 7;
+        }
+        break;
+      default:
+        return;
+    }
+
+    const newText = text.substring(0, start) + insertion + text.substring(end);
+    setPostContent(newText);
+
+    // Restore selection/focus
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + selectionOffsetStart, start + selectionOffsetEnd);
+    }, 0);
+  };
+
+  const handleInsertLink = (e: React.FormEvent) => {
+    e.preventDefault();
+    const textarea = textareaRef.current;
+    if (!textarea || !textareaSelRange) {
+      setLinkModalOpen(false);
+      return;
+    }
+
+    const { start, end } = textareaSelRange;
+    const text = textarea.value;
+    const url = linkUrl.trim() || "https://";
+    const displayName = linkText.trim() || "link text";
+    
+    const insertion = `[${displayName}](${url})`;
+    const newText = text.substring(0, start) + insertion + text.substring(end);
+    setPostContent(newText);
+    setLinkModalOpen(false);
+    setTextareaSelRange(null);
+    setLinkUrl("");
+    setLinkText("");
+
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + 1, start + 1 + displayName.length);
+    }, 0);
+  };
+
+  const handleTextareaSelection = (e: React.SyntheticEvent<HTMLTextAreaElement>) => {
+    const textarea = e.currentTarget;
+    const val = textarea.value;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+
+    const PLACEHOLDERS = [
+      "task item",
+      "bold text",
+      "italic text",
+      "code block",
+      "link text",
+      "quote",
+      "list item"
+    ];
+
+    if (start === end) {
+      for (const placeholder of PLACEHOLDERS) {
+        let index = -1;
+        while ((index = val.indexOf(placeholder, index + 1)) !== -1) {
+          if (start >= index && start <= index + placeholder.length) {
+            textarea.setSelectionRange(index, index + placeholder.length);
+            return;
+          }
+        }
+      }
+
+      let index = -1;
+      const target = "https://";
+      while ((index = val.indexOf(target, index + 1)) !== -1) {
+        if (val.charAt(index + target.length) === ")") {
+          if (start >= index && start <= index + target.length) {
+            textarea.setSelectionRange(index, index + target.length);
+            return;
+          }
+        }
+      }
+    }
+  };
+
+  const handleExportComposerPreview = async () => {
+    const cardElement = document.getElementById('composer-preview-card');
+    if (!cardElement) return;
+
+    setIsExportingComposer(true);
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
+      const capture = async (excludeImages = false) => {
+        return await toPng(cardElement, {
+          backgroundColor: '#ffffff',
+          cacheBust: true,
+          skipFonts: true,
+          pixelRatio: 2,
+          style: {
+            borderRadius: '4px',
+            boxShadow: 'none',
+          },
+          filter: (domNode: any) => {
+            if (excludeImages && (domNode.tagName === 'IMG' || domNode.tagName === 'Image')) {
+              return false;
+            }
+            return true;
+          }
+        });
+      };
+
+      let dataUrl;
+      try {
+        dataUrl = await capture(false);
+      } catch (err) {
+        console.warn('Composer preview initial capture failed, trying without images...', err);
+        dataUrl = await capture(true);
+      }
+
+      const link = document.createElement('a');
+      link.download = `draft-post.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (error) {
+      console.error('Composer export failed:', error);
+      alert('Failed to export preview');
+    } finally {
+      setIsExportingComposer(false);
+    }
+  };
 
   useEffect(() => {
     if (session?.user) {
@@ -205,11 +456,11 @@ export default function ProfileClient({
     fetchPosts(0);
   }, [fetchPosts]);
 
-  const handleSignIn = () => {
-    window.location.href = `/api/auth/github?redirect=${encodeURIComponent(window.location.pathname)}`;
+  const handleSignIn = async () => {
+    await triggerGitHubLogin(supabase, window.location.pathname);
   };
 
-  const handleExportPost = async (postId: number, type: 'png' | 'pdf') => {
+  const handleExportPost = async (postId: number) => {
     const cardElement = document.getElementById(`post-card-${postId}`);
     if (!cardElement) return;
 
@@ -257,21 +508,10 @@ export default function ProfileClient({
 
       cardElement.classList.remove('exporting-mode');
 
-      if (type === 'png') {
-        const link = document.createElement('a');
-        link.download = `post-${postId}.png`;
-        link.href = dataUrl;
-        link.click();
-      } else if (type === 'pdf') {
-        const pdf = new jsPDF({
-          orientation: 'portrait',
-          unit: 'px',
-          format: [cardElement.clientWidth + 40, cardElement.clientHeight + 40],
-          hotfixes: ['px_scaling']
-        });
-        pdf.addImage(dataUrl, 'PNG', 20, 20, cardElement.clientWidth, cardElement.clientHeight);
-        pdf.save(`post-${postId}.pdf`);
-      }
+      const link = document.createElement('a');
+      link.download = `post-${postId}.png`;
+      link.href = dataUrl;
+      link.click();
     } catch (error) {
       console.error('Export failed:', error);
       alert('Failed to export post');
@@ -518,37 +758,200 @@ export default function ProfileClient({
       <div className="space-y-4 transition-all duration-300">
       {/* 1. COMPOSER CARD (Owner only) */}
       {isActualOwner && (
-        <div className="bg-white border border-[#dadde1] rounded-lg shadow-sm p-4">
-          <div className="flex gap-2.5 items-start">
-            <div className="relative h-10 w-10 rounded-full overflow-hidden border border-gray-200 shrink-0">
-              <Image
-                src={avatarUrl ?? "/default-avatar.png"}
-                alt={username}
-                fill
-                sizes="40px"
-                className="object-cover"
-              />
+        <div className="bg-white border border-[#dadde1] rounded-lg shadow-sm overflow-hidden">
+          {/* Header with Tabs */}
+          <div className="bg-slate-50 px-4 py-2 border-b border-slate-100 flex justify-between items-center flex-wrap gap-2">
+            <div className="flex items-center gap-1.5 font-bold text-xs text-slate-700 uppercase">
+              <Code className="h-3.5 w-3.5 text-[#1877f2]" />
+              Create Post
             </div>
-            <form onSubmit={handleCreatePost} className="flex-1 space-y-3">
-              <textarea
-                value={postContent}
-                onChange={(e) => setPostContent(e.target.value)}
-                placeholder={`What's on your mind, ${displayName}?`}
-                rows={3}
-                className="w-full border-none outline-none resize-none text-sm text-gray-800 placeholder-gray-500 focus:ring-0"
-              />
-              <div className="border-t border-[#e5e5e5] pt-3 flex items-center justify-between">
-                <span className="text-xs text-gray-400 font-mono">Syncs to {assignedRepo ?? `social-${username}`}</span>
-                <button
-                  type="submit"
-                  disabled={!postContent.trim() || isSubmitting}
-                  className="bg-[#1877f2] hover:bg-[#166fe5] disabled:opacity-50 text-white font-bold text-xs px-4 py-1.5 rounded-md shadow-sm transition-colors"
-                >
-                  {isSubmitting ? "Posting..." : "Share"}
-                </button>
-              </div>
-            </form>
+            <div className="flex bg-slate-100 rounded-lg p-0.5">
+              <button
+                type="button"
+                onClick={() => setEditorTab("write")}
+                className={`px-3 py-1 text-[11px] font-bold uppercase transition-all duration-150 rounded-md cursor-pointer ${
+                  editorTab === "write"
+                    ? "text-[#1877f2] bg-white shadow-xs"
+                    : "text-[#65676b] hover:text-[#1c1e21]"
+                }`}
+              >
+                Write
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditorTab("preview")}
+                className={`px-3 py-1 text-[11px] font-bold uppercase transition-all duration-150 rounded-md cursor-pointer ${
+                  editorTab === "preview"
+                    ? "text-[#1877f2] bg-white shadow-xs"
+                    : "text-[#65676b] hover:text-[#1c1e21]"
+                }`}
+              >
+                Preview
+              </button>
+            </div>
           </div>
+
+          <form onSubmit={handleCreatePost} className="p-3">
+            {editorTab === "write" ? (
+              <div className="space-y-1.5">
+                {/* Markdown Formatting Toolbar */}
+                <div className="flex items-center gap-0.5 pb-2 border-b border-[#dadde1] flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => handleFormat("bold")}
+                    title="Bold"
+                    className="p-1 hover:bg-[#f2f3f5] rounded transition-colors text-gray-600 hover:text-black flex items-center justify-center shrink-0 cursor-pointer"
+                  >
+                    <Bold className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleFormat("italic")}
+                    title="Italic"
+                    className="p-1 hover:bg-[#f2f3f5] rounded transition-colors text-gray-600 hover:text-black flex items-center justify-center shrink-0 cursor-pointer"
+                  >
+                    <Italic className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleFormat("code")}
+                    title="Inline Code"
+                    className="p-1 hover:bg-[#f2f3f5] rounded transition-colors text-gray-600 hover:text-black flex items-center justify-center shrink-0 cursor-pointer"
+                  >
+                    <Code className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleFormat("codeblock")}
+                    title="Code Block"
+                    className="p-1 hover:bg-[#f2f3f5] rounded transition-colors text-gray-600 hover:text-black flex items-center justify-center shrink-0 font-mono text-[9px] font-bold px-1.5 cursor-pointer"
+                  >
+                    {"{ }"}
+                  </button>
+                  <span className="mx-1 h-4 w-px bg-gray-200" />
+                  <button
+                    type="button"
+                    onClick={() => handleFormat("link")}
+                    title="Link"
+                    className="p-1 hover:bg-[#f2f3f5] rounded transition-colors text-gray-600 hover:text-black flex items-center justify-center shrink-0 cursor-pointer"
+                  >
+                    <Link2 className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleFormat("quote")}
+                    title="Quote"
+                    className="p-1 hover:bg-[#f2f3f5] rounded transition-colors text-gray-600 hover:text-black flex items-center justify-center shrink-0 cursor-pointer"
+                  >
+                    <Quote className="h-4 w-4" />
+                  </button>
+                  <span className="mx-1 h-4 w-px bg-gray-200" />
+                  <button
+                    type="button"
+                    onClick={() => handleFormat("bullet")}
+                    title="Bullet List"
+                    className="p-1 hover:bg-[#f2f3f5] rounded transition-colors text-gray-600 hover:text-black flex items-center justify-center shrink-0 cursor-pointer"
+                  >
+                    <List className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleFormat("ordered")}
+                    title="Numbered List"
+                    className="p-1 hover:bg-[#f2f3f5] rounded transition-colors text-gray-600 hover:text-black flex items-center justify-center shrink-0 cursor-pointer"
+                  >
+                    <ListOrdered className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleFormat("task")}
+                    title="Task List"
+                    className="p-1 hover:bg-[#f2f3f5] rounded transition-colors text-gray-600 hover:text-black flex items-center justify-center shrink-0 cursor-pointer"
+                  >
+                    <CheckSquare className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <textarea
+                  ref={textareaRef}
+                  value={postContent}
+                  onChange={(e) => setPostContent(e.target.value)}
+                  placeholder={`What's on your mind, ${displayName}? Write here, sync to GitHub... (Supports Markdown)`}
+                  onSelect={handleTextareaSelection}
+                  rows={4}
+                  className="w-full text-sm resize-none focus:outline-none border border-transparent focus:border-slate-100 p-2.5 rounded-lg text-slate-800 placeholder-slate-400 focus:ring-0 bg-white"
+                  maxLength={1000}
+                />
+              </div>
+            ) : (
+              <div className="flex flex-col space-y-2">
+                <div id="composer-preview-card" className="min-h-[108px] overflow-y-auto p-3 border border-dashed border-gray-300 rounded bg-gray-50 select-text relative">
+                  {postContent.trim() ? (
+                    <div className="space-y-3 bg-white p-4 border border-[#dadde1] rounded shadow-xs text-left">
+                      <div className="flex items-center gap-2.5">
+                        <div className="relative h-9 w-9 rounded-full overflow-hidden border border-gray-200 shrink-0">
+                          <img
+                            src={avatarUrl ?? "/default-avatar.png"}
+                            alt={username}
+                            className="h-full w-full object-cover"
+                            crossOrigin="anonymous"
+                          />
+                        </div>
+                        <div>
+                          <div className="flex items-baseline gap-1.5">
+                            <span className="font-bold text-xs text-[#3b5998]">
+                              {displayName}
+                            </span>
+                            <span className="text-[10px] text-gray-400 font-mono">
+                              @{username}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-[#65676b] block">
+                            Preview Draft
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-sm leading-relaxed text-gray-800">
+                        <MarkdownViewer content={postContent} />
+                      </div>
+                    </div>
+                  ) : (
+                    <span className="text-gray-400 text-xs italic">Nothing to preview</span>
+                  )}
+                </div>
+                {postContent.trim() && (
+                  <div className="flex justify-end gap-2 text-[10px] px-1.5">
+                    <button
+                      type="button"
+                      disabled={isExportingComposer}
+                      onClick={() => handleExportComposerPreview()}
+                      className="px-2 py-0.5 bg-gray-100 hover:bg-gray-200 text-[#4b4f56] font-bold rounded flex items-center gap-1 transition-colors disabled:opacity-50 cursor-pointer"
+                    >
+                      <Download className="h-3 w-3" /> Export PNG
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="border-t border-[#e5e5e5] mt-3 pt-3 flex items-center justify-between">
+              <div className="flex flex-col">
+                <span className="text-[10px] text-gray-400 font-mono">
+                  Syncs to {assignedRepo ?? `social-${username}`}
+                </span>
+                <span className="text-[9px] text-gray-400 font-mono">
+                  {postContent.length}/1000 characters
+                </span>
+              </div>
+              <button
+                type="submit"
+                disabled={!postContent.trim() || isSubmitting}
+                className="bg-[#1877f2] hover:bg-[#166fe5] disabled:opacity-50 text-white font-bold text-xs px-4 py-1.5 rounded-md shadow-sm transition-colors cursor-pointer"
+              >
+                {isSubmitting ? "Posting..." : "Share"}
+              </button>
+            </div>
+          </form>
         </div>
       )}
 
@@ -645,51 +1048,21 @@ export default function ProfileClient({
                   <MessageSquare className="h-3.5 w-3.5" />
                   Comment
                 </button>
-                <div className="relative">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setActiveExportDropdown(activeExportDropdown === post.id ? null : post.id);
+                      handleExportPost(post.id);
                     }}
                     disabled={exportingPostId === post.id}
-                    className="w-full py-1.5 hover:bg-[#f2f3f5] rounded flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                    className="py-1.5 hover:bg-[#f2f3f5] rounded flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
                   >
                     {exportingPostId === post.id ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin text-[#3b5998]" />
                     ) : (
                       <Download className="h-3.5 w-3.5" />
                     )}
-                    Download
+                    Download PNG
                   </button>
-                  {activeExportDropdown === post.id && (
-                    <>
-                      <div 
-                        className="fixed inset-0 z-30" 
-                        onClick={() => setActiveExportDropdown(null)} 
-                      />
-                      <div className="absolute right-0 bottom-full mb-1 bg-white border border-[#dadde1] rounded shadow-lg py-1 z-40 w-32 text-left animate-in fade-in slide-in-from-bottom-2 duration-150">
-                        <button
-                          onClick={() => {
-                            setActiveExportDropdown(null);
-                            handleExportPost(post.id, 'png');
-                          }}
-                          className="w-full px-3 py-1.5 text-xs text-gray-700 hover:bg-[#f2f3f5] flex items-center gap-2 font-semibold cursor-pointer"
-                        >
-                          <span>PNG Image</span>
-                        </button>
-                        <button
-                          onClick={() => {
-                            setActiveExportDropdown(null);
-                            handleExportPost(post.id, 'pdf');
-                          }}
-                          className="w-full px-3 py-1.5 text-xs text-gray-700 hover:bg-[#f2f3f5] flex items-center gap-2 font-semibold cursor-pointer"
-                        >
-                          <span>PDF Document</span>
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
               </div>
 
               {/* Comments list */}
@@ -823,6 +1196,56 @@ export default function ProfileClient({
         session={session}
         currentDev={currentDev}
       />
+
+      {/* Custom Link Modal Overlay */}
+      {linkModalOpen && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-[999] p-4 animate-in fade-in duration-200">
+          <div className="bg-white border border-[#dadde1] w-full max-w-sm rounded-lg shadow-2xl p-4 animate-in zoom-in-95 duration-150 text-left">
+            <h3 className="font-bold text-sm text-gray-800 mb-3 font-sans">Insert Link</h3>
+            <form onSubmit={handleInsertLink} className="space-y-3">
+              <div>
+                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1 font-sans">URL</label>
+                <input
+                  type="text"
+                  placeholder="https://"
+                  value={linkUrl}
+                  onChange={(e) => setLinkUrl(e.target.value)}
+                  className="w-full text-xs px-2.5 py-1.5 border border-[#dadde1] rounded focus:outline-none focus:border-[#1877f2] text-slate-800 bg-white font-sans animate-none"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1 font-sans">Link Text</label>
+                <input
+                  type="text"
+                  placeholder="Link text"
+                  value={linkText}
+                  onChange={(e) => setLinkText(e.target.value)}
+                  className="w-full text-xs px-2.5 py-1.5 border border-[#dadde1] rounded focus:outline-none focus:border-[#1877f2] text-slate-800 bg-white font-sans"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLinkModalOpen(false);
+                    setTextareaSelRange(null);
+                  }}
+                  className="px-3 py-1.5 text-xs font-semibold text-gray-500 hover:bg-gray-100 rounded transition-colors cursor-pointer font-sans"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-3 py-1.5 text-xs font-bold text-white bg-[#1877f2] hover:bg-[#166fe5] rounded transition-colors cursor-pointer font-sans"
+                >
+                  Insert
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

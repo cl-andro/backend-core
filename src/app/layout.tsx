@@ -4,6 +4,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import GlobalHeader from "@/components/GlobalHeader";
 import "./globals.css";
+import "./app-layout.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(
@@ -77,7 +78,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-     <html lang="en">
+     <html lang="en" suppressHydrationWarning>
          <head>
            <script
              type="application/ld+json"

@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useLayoutEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { createBrowserSupabase } from "@/lib/supabase";
+import { createBrowserSupabase, triggerGitHubLogin } from "@/lib/supabase";
 import type { PlayerState, ChatBubble, ChatLogEntry, Direction, AvatarConfig } from "@/lib/arcade/types";
 import { startGameLoop } from "@/lib/arcade/engine/gameLoop";
 import { loadSpritesheet, loadCozySprites, updateSpriteAnimation, resetSprites, loadPetSprites, resetPet, setActivePet, registerShopItems, setPlayerAvatar, preloadLoadout, getDefaultLoadout, loadoutToAvatar, type CozyLayer } from "@/lib/arcade/engine/sprites";
@@ -176,6 +176,11 @@ export default function ArcadeRoomPage({
   const chatInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const [slug, setSlug] = useState<string | null>(null);
+
+  const handleSignIn = async () => {
+    const supabase = createBrowserSupabase();
+    await triggerGitHubLogin(supabase, "/arcade");
+  };
 
   useEffect(() => {
     params.then((p) => setSlug(p.slug));
@@ -1024,8 +1029,8 @@ export default function ArcadeRoomPage({
               Floor 0 — The Lobby
             </p>
             <div className="mt-6">
-              <a
-                href="/api/auth/github?redirect=/arcade"
+              <button
+                onClick={handleSignIn}
                 className="cursor-pointer rounded-[4px] px-6 py-2.5 text-[11px] font-bold tracking-widest uppercase transition-all hover:brightness-95 inline-block text-center"
                 style={{
                   background: "linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 100%)",
@@ -1034,7 +1039,7 @@ export default function ArcadeRoomPage({
                 }}
               >
                 Sign in with GitHub
-              </a>
+              </button>
             </div>
             <p className="mt-4 text-[9px] text-[#a09888]">
               Sign in to enter the building.

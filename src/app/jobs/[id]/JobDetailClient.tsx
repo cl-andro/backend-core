@@ -297,13 +297,17 @@ export default function JobDetailClient({ listingId }: { listingId: string }) {
                 <div className="mt-5 space-y-2">
                   {!data.isAuthenticated ? (
                     <>
-                      <a
-                        href={`/api/auth/github?redirect=/jobs/${job.id}`}
-                        className="btn-press block w-full py-3.5 text-xs text-bg text-center"
+                      <button
+                        onClick={async () => {
+                          const { createBrowserSupabase, triggerGitHubLogin } = await import("@/lib/supabase");
+                          const supabase = createBrowserSupabase();
+                          await triggerGitHubLogin(supabase, `/jobs/${job.id}`);
+                        }}
+                        className="btn-press block w-full py-3.5 text-xs text-bg text-center cursor-pointer"
                         style={{ backgroundColor: accent, boxShadow: `3px 3px 0 0 ${shadow}` }}
                       >
                         {data.hasExternalUrl ? "Sign in to Visit" : "Sign in to Apply"}
-                      </a>
+                      </button>
                       <p className="text-[10px] text-dim normal-case text-center">
                         {data.hasExternalUrl
                           ? "Sign in with GitHub to visit the application page"

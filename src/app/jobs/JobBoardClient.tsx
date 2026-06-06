@@ -278,13 +278,17 @@ export default function JobBoardClient({ username, hasProfile, pageTitle, pageDe
                 </Link>
               </>
             ) : (
-              <Link
-                href="/api/auth/github?redirect=/jobs"
-                className="btn-press bg-lime px-4 py-2 text-xs text-bg"
+              <button
+                onClick={async () => {
+                  const { createBrowserSupabase, triggerGitHubLogin } = await import("@/lib/supabase");
+                  const supabase = createBrowserSupabase();
+                  await triggerGitHubLogin(supabase, "/jobs");
+                }}
+                className="btn-press bg-lime px-4 py-2 text-xs text-bg cursor-pointer"
                 style={{ boxShadow: "3px 3px 0 0 #5a7a00" }}
               >
                 Sign in with GitHub
-              </Link>
+              </button>
             )}
           </div>
         </div>

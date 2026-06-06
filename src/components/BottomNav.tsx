@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Home, Search, Trophy, User, Github, Plus } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
-import { createBrowserSupabase } from "@/lib/supabase";
+import { createBrowserSupabase, triggerGitHubLogin } from "@/lib/supabase";
 
 interface BottomNavProps {
   activeTab?: string;
@@ -46,16 +46,17 @@ export default function BottomNav({ activeTab, onTabChange, onSearchFocus }: Bot
     return () => subscription.unsubscribe();
   }, [supabase]);
 
-  const handleProfileClick = () => {
+  const handleProfileClick = async () => {
+    window.dispatchEvent(new CustomEvent("close-search-overlay"));
     if (username) {
       router.push(`/dev/${username}`);
     } else {
-      // Direct redirect to server-side oauth route
-      window.location.href = `/api/auth/github?redirect=${encodeURIComponent(window.location.pathname)}`;
+      await triggerGitHubLogin(supabase, window.location.pathname);
     }
   };
 
-  const handlePostClick = () => {
+  const handlePostClick = async () => {
+    window.dispatchEvent(new CustomEvent("close-search-overlay"));
     if (username) {
       if (pathname === "/" || pathname.startsWith("/dev/")) {
         const event = new CustomEvent("open-post-modal");
@@ -64,7 +65,7 @@ export default function BottomNav({ activeTab, onTabChange, onSearchFocus }: Bot
         router.push("/?openPost=true");
       }
     } else {
-      window.location.href = `/api/auth/github?redirect=${encodeURIComponent(window.location.pathname)}`;
+      await triggerGitHubLogin(supabase, window.location.pathname);
     }
   };
 
@@ -76,10 +77,11 @@ export default function BottomNav({ activeTab, onTabChange, onSearchFocus }: Bot
   const isRankingsActive = isHome && activeTab === "leaderboard";
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0f172a]/95 border-t border-[#334155]/40 shadow-[0_-8px_30px_rgba(0,0,0,0.25)] flex items-center justify-around py-2 px-4 backdrop-blur-md">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-[110] bg-[#0f172a]/95 border-t border-[#334155]/40 shadow-[0_-8px_30px_rgba(0,0,0,0.25)] flex items-center justify-around py-2 px-4 backdrop-blur-md safe-bottom-padding">
       {/* Home Feed */}
       <button
         onClick={() => {
+          window.dispatchEvent(new CustomEvent("close-search-overlay"));
           if (!isHome) {
             router.push("/");
           } else if (onTabChange) {
@@ -98,9 +100,8 @@ export default function BottomNav({ activeTab, onTabChange, onSearchFocus }: Bot
       {/* Search */}
       <button
         onClick={() => {
-          if (!isHome) {
-            router.push("/?search=focus");
-          } else if (onSearchFocus) {
+          window.dispatchEvent(new CustomEvent("toggle-search-overlay"));
+          if (onSearchFocus) {
             onSearchFocus();
           }
         }}
@@ -123,6 +124,7 @@ export default function BottomNav({ activeTab, onTabChange, onSearchFocus }: Bot
       {/* Rankings */}
       <button
         onClick={() => {
+          window.dispatchEvent(new CustomEvent("close-search-overlay"));
           if (!isHome) {
             router.push("/");
             // wait a tiny bit for navigation and then trigger tab

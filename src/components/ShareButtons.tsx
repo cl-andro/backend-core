@@ -26,10 +26,11 @@ export default function ShareButtons({
   const [cardLang, setCardLang] = useState<CardLang>("en");
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const profileUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/dev/${login}`
-      : `/dev/${login}`;
+  const [profileUrl, setProfileUrl] = useState(`/dev/${login}`);
+
+  useEffect(() => {
+    setProfileUrl(`${window.location.origin}/dev/${login}`);
+  }, [login]);
 
   const tweetText = `My GitHub just turned into a building. ${contributions.toLocaleString()} contributions, Rank #${rank ?? "?"}. What does yours look like?`;
 

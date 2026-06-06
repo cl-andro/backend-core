@@ -1,7 +1,6 @@
 import type { ComponentType } from "react";
-import FirecrawlBuilding from "./buildings/FirecrawlBuilding";
-import GuaraCloudBuilding from "./buildings/GuaraCloudBuilding";
-import SolanaHackathonBuilding from "./buildings/SolanaHackathonBuilding";
+
+const StubBuilding = () => null;
 
 // ─── Grid constants (must match github.ts) ──────────────────
 const BLOCK_FOOTPRINT_X = 161; // 4*38 + 3*3
@@ -60,7 +59,7 @@ export const SPONSORS: SponsorConfig[] = [
     gridX: -1,
     gridZ: 1,
     features: ["Git-based deploys", "Autoscaling", "Billing in BRL"],
-    Building: GuaraCloudBuilding,
+    Building: StubBuilding,
     hitboxRadius: 80,
     hitboxHeight: 450,
     logoSvg: (
@@ -80,7 +79,7 @@ export const SPONSORS: SponsorConfig[] = [
     gridX: -1,
     gridZ: -1,
     features: ["Scrape + crawl API", "Open source", "LLM-ready markdown"],
-    Building: FirecrawlBuilding,
+    Building: StubBuilding,
     hitboxRadius: 80,
     hitboxHeight: 500,
     logoSvg: (
@@ -100,7 +99,7 @@ export const SPONSORS: SponsorConfig[] = [
     gridX: 1,
     gridZ: 1,
     features: ["R$5M+ in prizes", "$300K seed per team", "80K+ global builders"],
-    Building: SolanaHackathonBuilding,
+    Building: StubBuilding,
     hitboxRadius: 80,
     hitboxHeight: 500,
     logoSvg: (

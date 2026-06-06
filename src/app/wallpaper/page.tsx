@@ -1,124 +1,68 @@
 "use client";
 
-import { useState, useEffect, useCallback, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
-import dynamic from "next/dynamic";
-import {
-  generateCityLayout,
-  type CityBuilding,
-  type CityPlaza,
-  type CityDecoration,
-  type CityRiver,
-  type CityBridge,
-} from "@/lib/github";
-
-const CityCanvas = dynamic(() => import("@/components/CityCanvas"), { ssr: false });
-
-const THEME_MAP: Record<string, number> = {
-  midnight: 0,
-  sunset: 1,
-  neon: 2,
-  emerald: 3,
-};
-
-function WallpaperInner() {
-  const params = useSearchParams();
-
-  const themeParam = params.get("theme") ?? "emerald";
-  const themeIndex = THEME_MAP[themeParam] ?? 3;
-
-  const speedParam = params.get("speed");
-  const speed = speedParam ? Math.min(0.5, Math.max(0.05, parseFloat(speedParam) || 0.08)) : 0.08;
-
-  const [buildings, setBuildings] = useState<CityBuilding[]>([]);
-  const [plazas, setPlazas] = useState<CityPlaza[]>([]);
-  const [decorations, setDecorations] = useState<CityDecoration[]>([]);
-  const [river, setRiver] = useState<CityRiver | null>(null);
-  const [bridges, setBridges] = useState<CityBridge[]>([]);
-  const [ready, setReady] = useState(false);
-
-  const fetchCity = useCallback(async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let allDevs: any[] = [];
-
-    // Try pre-computed snapshot first
-    try {
-      const v = Math.floor(Date.now() / 300_000);
-      const snapshotUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/city-data/snapshot.json?v=${v}`;
-      const snapshotRes = await fetch(snapshotUrl);
-      if (snapshotRes.ok) {
-        const buf = await snapshotRes.arrayBuffer();
-        const ds = new DecompressionStream("gzip");
-        const stream = new Blob([buf]).stream().pipeThrough(ds);
-        const snapshot = await new Response(stream).json();
-        allDevs = snapshot.developers;
-      }
-    } catch { /* fall through to chunked */ }
-
-    // Fallback to chunked API
-    if (allDevs.length === 0) {
-      const CHUNK = 1000;
-      const res = await fetch(`/api/city?from=0&to=${CHUNK}`);
-      if (!res.ok) return;
-      const data = await res.json();
-      allDevs = data.developers ?? [];
-
-      const total = data.stats?.total_developers ?? allDevs.length;
-      if (total > CHUNK) {
-        const promises: Promise<{ developers: typeof allDevs } | null>[] = [];
-        for (let from = CHUNK; from < total; from += CHUNK) {
-          promises.push(
-            fetch(`/api/city?from=${from}&to=${from + CHUNK}`)
-              .then((r) => (r.ok ? r.json() : null))
-          );
-        }
-        const chunks = await Promise.all(promises);
-        for (const chunk of chunks) {
-          if (chunk) allDevs = [...allDevs, ...chunk.developers];
-        }
-      }
-    }
-
-    if (allDevs.length === 0) return;
-
-    const layout = generateCityLayout(allDevs);
-    setBuildings(layout.buildings);
-    setPlazas(layout.plazas);
-    setDecorations(layout.decorations);
-    setRiver(layout.river);
-    setBridges(layout.bridges);
-    setReady(true);
-  }, []);
-
-  useEffect(() => {
-    fetchCity();
-  }, [fetchCity]);
-
-  if (!ready) return null;
-
-  return (
-    <CityCanvas
-      buildings={buildings}
-      plazas={plazas}
-      decorations={decorations}
-      river={river}
-      bridges={bridges}
-      flyMode={false}
-      onExitFly={() => {}}
-      themeIndex={themeIndex}
-      introMode={false}
-      wallpaperMode
-      wallpaperSpeed={speed}
-    />
-  );
-}
+import { useEffect, useState } from "react";
+import Link from "next/link";
 
 export default function WallpaperPage() {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
+
   return (
-    <div style={{ position: "fixed", inset: 0, background: "#000", cursor: "none", overflow: "hidden" }}>
-      <Suspense fallback={null}>
-        <WallpaperInner />
-      </Suspense>
+    <div className="fixed inset-0 bg-[#060814] overflow-hidden flex flex-col items-center justify-center font-mono">
+      {/* Animated 3D Grid background in CSS */}
+      <div 
+        className="absolute inset-0 opacity-20 pointer-events-none" 
+        style={{
+          backgroundImage: `
+            linear-gradient(to right, #c8e64a 1px, transparent 1px),
+            linear-gradient(to bottom, #c8e64a 1px, transparent 1px)
+          `,
+          backgroundSize: "40px 40px",
+          transform: "perspective(500px) rotateX(60deg) translateY(-50px)",
+          transformOrigin: "top center",
+          animation: "grid-drift 20s linear infinite"
+        }}
+      />
+
+      <style>{`
+        @keyframes grid-drift {
+          0% { background-position: 0 0; }
+          100% { background-position: 0 800px; }
+        }
+      `}</style>
+
+      {/* Cyberpunk ambient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-t from-[#060814] via-transparent to-transparent pointer-events-none" />
+
+      {/* Futuristic status hub */}
+      <div className="relative z-10 border-[3px] border-border bg-[#0d0f22]/90 p-8 text-center max-w-md shadow-2xl backdrop-blur-md">
+        <div className="h-2 w-2 rounded-full bg-lime animate-ping absolute top-4 right-4" />
+        
+        <h1 className="text-lime text-lg font-bold tracking-widest uppercase">
+          GITSOCIAL WALLPAPER
+        </h1>
+        <p className="text-[10px] text-muted mt-2 uppercase tracking-wider">
+          System rotation · 2D lightweight mode active
+        </p>
+
+        <div className="my-6 border-y border-dashed border-border py-4 text-left text-[10px] space-y-2 text-gray-400">
+          <div>[STATUS] Live wallpaper canvas disabled</div>
+          <div>[INFO] Resource usage optimized for mobile webviews</div>
+          <div>[THEME] Midnight Green Active</div>
+        </div>
+
+        <Link
+          href="/"
+          className="inline-block border-2 border-lime text-lime px-6 py-2 text-[10px] uppercase font-bold tracking-wider hover:bg-lime hover:text-black transition-all"
+        >
+          Return to Feed
+        </Link>
+      </div>
     </div>
   );
 }

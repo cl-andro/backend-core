@@ -284,6 +284,114 @@ if (!existingDev) {
   // Support ?next= param for post-login redirect
   const next = searchParams.get("next");
   if (next && githubLogin) {
+    if (next.startsWith("gitsocial://")) {
+      const accessToken = data.session?.access_token || "";
+      const refreshToken = data.session?.refresh_token || "";
+      
+      const schemeUrl = `gitsocial://auth/callback?access_token=${accessToken}&refresh_token=${refreshToken}`;
+      const intentUrl = `intent://auth/callback?access_token=${accessToken}&refresh_token=${refreshToken}#Intent;scheme=gitsocial;package=com.gitcity.social;end`;
+      
+      return new NextResponse(
+        `<!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>GitSocial Authentication</title>
+          <style>
+            body {
+              background-color: #060814;
+              color: #f8d880;
+              font-family: monospace;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              height: 100vh;
+              margin: 0;
+              padding: 20px;
+              box-sizing: border-box;
+              text-align: center;
+            }
+            .card {
+              border: 3px solid #c8e64a;
+              background-color: #0d0f22;
+              padding: 40px;
+              max-width: 400px;
+              box-shadow: 0 0 20px rgba(200, 230, 74, 0.2);
+            }
+            h1 {
+              color: #c8e64a;
+              font-size: 20px;
+              margin-top: 0;
+              letter-spacing: 2px;
+            }
+            p {
+              font-size: 12px;
+              color: #8892b0;
+              line-height: 1.6;
+            }
+            .btn {
+              display: inline-block;
+              margin-top: 25px;
+              padding: 12px 24px;
+              background-color: #c8e64a;
+              color: #060814;
+              text-decoration: none;
+              font-weight: bold;
+              font-size: 12px;
+              border: none;
+              cursor: pointer;
+              box-shadow: 4px 4px 0 0 #5a7a00;
+              text-transform: uppercase;
+              letter-spacing: 1px;
+            }
+            .btn:active {
+              transform: translate(2px, 2px);
+              box-shadow: 2px 2px 0 0 #5a7a00;
+            }
+            .loader {
+              margin: 20px auto;
+              width: 30px;
+              height: 30px;
+              border: 3px solid #1f2937;
+              border-top: 3px solid #c8e64a;
+              border-radius: 50%;
+              animation: spin 1s linear infinite;
+            }
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <h1>AUTH SUCCESSFUL</h1>
+            <div class="loader"></div>
+            <p>Authentication complete. We are redirecting you back to the app.</p>
+            <p style="font-size: 10px; color: #5a6578;">If the app does not open automatically in 3 seconds, click the button below:</p>
+            <a href="${intentUrl}" class="btn">Return to GitSocial</a>
+          </div>
+           <script>
+            // Attempt auto-redirect on load
+            window.onload = function() {
+              var userAgent = navigator.userAgent || navigator.vendor || window.opera;
+              var isAndroid = /android/i.test(userAgent);
+              var targetUrl = isAndroid ? "${intentUrl}" : "${schemeUrl}";
+              setTimeout(function() {
+                window.location.href = targetUrl;
+              }, 500);
+            };
+          </script>
+        </body>
+        </html>`,
+        {
+          headers: { "Content-Type": "text/html" },
+        }
+      );
+    }
+
     // Special case: /shop redirects to /shop/{username}
     if (next === "/shop") {
       const { data: dev } = await admin

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { UserPlus, UserMinus, UserCheck, Loader2, Github, AlertTriangle, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { createBrowserSupabase } from "@/lib/supabase";
+import { createBrowserSupabase, triggerGitHubLogin } from "@/lib/supabase";
 
 interface FollowButtonProps {
   targetUsername: string;
@@ -51,7 +51,7 @@ export default function FollowButton({ targetUsername }: FollowButtonProps) {
 
         // Check follow status via our secure backend endpoint
         try {
-          const res = await fetch(`/api/dev/${encodeURIComponent(targetUsername)}/follow`);
+          const res = await fetch(`/api/dev/${encodeURIComponent(targetUsername)}/connection`);
           const data = await res.json();
           setIsFollowing(!!data.isFollowing);
         } catch (err) {
@@ -84,6 +84,10 @@ export default function FollowButton({ targetUsername }: FollowButtonProps) {
     return () => subscription.unsubscribe();
   }, [supabase, targetUsername]);
 
+  if (!mounted) {
+    return null;
+  }
+
   // Hide button if not logged in or viewing own profile
   if (myUsername && myUsername === targetUsername.toLowerCase()) {
     return null;
@@ -94,7 +98,7 @@ export default function FollowButton({ targetUsername }: FollowButtonProps) {
     if (!session?.user) {
       // Redirect to sign in if not logged in
       const currentPath = typeof window !== "undefined" ? window.location.pathname : "/";
-      window.location.href = `/api/auth/github?redirect=${encodeURIComponent(currentPath)}`;
+      await triggerGitHubLogin(supabase, currentPath);
       return;
     }
 
@@ -103,7 +107,7 @@ export default function FollowButton({ targetUsername }: FollowButtonProps) {
     try {
       const method = isFollowing ? "DELETE" : "POST";
       const res = await fetch(
-        `/api/dev/${encodeURIComponent(targetUsername)}/follow`,
+        `/api/dev/${encodeURIComponent(targetUsername)}/connection`,
         { method }
       );
 
@@ -132,11 +136,11 @@ export default function FollowButton({ targetUsername }: FollowButtonProps) {
 
   const triggerReauthForScope = () => {
     const currentPath = typeof window !== "undefined" ? window.location.pathname : "/";
-    window.location.href = `/api/auth/github?redirect=${encodeURIComponent(currentPath)}`;
+    triggerGitHubLogin(supabase, currentPath);
   };
 
   // 1. Loading State
-  if (isFollowing === null || !mounted) {
+  if (isFollowing === null) {
     return (
       <button
         disabled

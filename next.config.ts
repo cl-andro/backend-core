@@ -23,6 +23,7 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: ["10.222.9.43", "localhost:3001"],
   images: {
     unoptimized: true,
     remotePatterns: [

@@ -146,9 +146,16 @@ export default function NotificationSettings() {
         <div className="mx-auto max-w-2xl px-4 py-8 sm:py-12 text-center">
           <h1 className="text-2xl text-cream mb-4">Settings</h1>
           <p className="text-sm text-muted/40 normal-case mb-6">You need to be logged in to manage notification preferences.</p>
-          <a href="/api/auth/github?redirect=/settings" className="inline-block border-[3px] border-[#c8e64a] px-6 py-3 text-xs text-[#c8e64a] transition-colors hover:bg-[#c8e64a]/10 cursor-pointer">
+          <button
+            onClick={async () => {
+              const { createBrowserSupabase, triggerGitHubLogin } = await import("@/lib/supabase");
+              const supabase = createBrowserSupabase();
+              await triggerGitHubLogin(supabase, "/settings");
+            }}
+            className="inline-block border-[3px] border-[#c8e64a] px-6 py-3 text-xs text-[#c8e64a] transition-colors hover:bg-[#c8e64a]/10 cursor-pointer"
+          >
             Sign in with GitHub
-          </a>
+          </button>
         </div>
       </main>
     );

@@ -47,3 +47,61 @@
 [2026-06-01T07:03:38.724Z] CALLBACK: User: zkalamgir@proton.me | Error: none | Has Session: true | Has Provider Token: true | Provider Token Preview: gho_b5DRcT...
 [2026-06-01T07:03:44.033Z] SESSION_SYNC: User: zkalamgir@proton.me | Login: alamgir-zk | Token synced successfully!
 [2026-06-01T07:03:44.038Z] SESSION_SYNC: User: zkalamgir@proton.me | Login: alamgir-zk | Token synced successfully!
+[2026-06-04T17:00:25.701Z] URL: http://localhost:3001/api/auth/github?redirect=%2Fdev%2Falamgir-zk | Host: localhost:3001 | X-Forwarded-Host: localhost:3001 | Computed Origin: http://localhost:3001
+[2026-06-04T17:00:42.080Z] URL: http://localhost:3001/api/auth/github?redirect=%2Fdev%2Falamgir-zk | Host: localhost:3001 | X-Forwarded-Host: localhost:3001 | Computed Origin: http://localhost:3001
+[2026-06-04T17:00:45.428Z] URL: http://localhost:3001/api/auth/github?redirect=%2Fdev%2Falamgir-zk | Host: localhost:3001 | X-Forwarded-Host: localhost:3001 | Computed Origin: http://localhost:3001
+[2026-06-05T06:25:21.743Z] URL: http://0.0.0.0:3001/api/auth/github | Host: 10.222.9.43:3001 | X-Forwarded-Host: 10.222.9.43:3001 | Computed Origin: http://10.222.9.43:3001
+[2026-06-05T06:30:19.618Z] URL: http://0.0.0.0:3001/api/auth/github | Host: 10.222.9.43:3001 | X-Forwarded-Host: 10.222.9.43:3001 | Computed Origin: http://10.222.9.43:3001
+[2026-06-05T06:31:25.166Z] URL: http://0.0.0.0:3001/api/auth/github | Host: 10.222.9.43:3001 | X-Forwarded-Host: 10.222.9.43:3001 | Computed Origin: http://10.222.9.43:3001
+[2026-06-05T06:36:04.968Z] URL: http://0.0.0.0:3001/api/auth/github | Host: 10.222.9.43:3001 | X-Forwarded-Host: 10.222.9.43:3001 | Computed Origin: http://10.222.9.43:3001
+[2026-06-05T06:46:05.565Z] URL: http://0.0.0.0:3001/api/auth/github | Host: 10.222.9.43:3001 | X-Forwarded-Host: 10.222.9.43:3001 | Computed Origin: http://10.222.9.43:3001
+[2026-06-05T06:52:02.112Z] URL: http://0.0.0.0:3001/api/auth/github | Host: 10.222.9.43:3001 | X-Forwarded-Host: 10.222.9.43:3001 | Computed Origin: http://10.222.9.43:3001
+[2026-06-05T06:52:20.173Z] URL: http://0.0.0.0:3001/api/auth/github?redirect=%2F | Host: 10.222.9.43:3001 | X-Forwarded-Host: 10.222.9.43:3001 | Computed Origin: http://10.222.9.43:3001
+[2026-06-05T06:53:06.311Z] URL: http://0.0.0.0:3001/api/auth/github | Host: 10.222.9.43:3001 | X-Forwarded-Host: 10.222.9.43:3001 | Computed Origin: http://10.222.9.43:3001
+[2026-06-05T06:56:32.034Z] URL: http://0.0.0.0:3001/api/auth/github | Host: 10.222.9.43:3001 | X-Forwarded-Host: 10.222.9.43:3001 | Computed Origin: http://10.222.9.43:3001
+[2026-06-05T07:09:55.139Z] URL: http://0.0.0.0:3001/api/auth/github | Host: 10.222.9.43:3001 | X-Forwarded-Host: 10.222.9.43:3001 | Computed Origin: http://10.222.9.43:3001
+[2026-06-05T07:10:07.484Z] URL: http://0.0.0.0:3001/api/auth/github?redirect=%2F | Host: 10.222.9.43:3001 | X-Forwarded-Host: 10.222.9.43:3001 | Computed Origin: http://10.222.9.43:3001
+[2026-06-05T07:19:02.608Z] URL: http://0.0.0.0:3001/api/auth/github?redirect=%2F | Host: 10.222.9.43:3001 | X-Forwarded-Host: 10.222.9.43:3001 | Computed Origin: http://10.222.9.43:3001
+[2026-06-05T08:05:19.274Z] CALLBACK: User: unknown | Error: PKCE code verifier not found in storage. This can happen if the auth flow was initiated in a different browser or device, or if the storage was cleared. For SSR frameworks (Next.js, SvelteKit, etc.), use @supabase/ssr on both the server and client to store the code verifier in cookies. | Has Session: false | Has Provider Token: false | Provider Token Preview: none
+[2026-06-05T08:06:15.581Z] CALLBACK: User: unknown | Error: PKCE code verifier not found in storage. This can happen if the auth flow was initiated in a different browser or device, or if the storage was cleared. For SSR frameworks (Next.js, SvelteKit, etc.), use @supabase/ssr on both the server and client to store the code verifier in cookies. | Has Session: false | Has Provider Token: false | Provider Token Preview: none
+[2026-06-05T08:09:55.769Z] CALLBACK: User: unknown | Error: PKCE code verifier not found in storage. This can happen if the auth flow was initiated in a different browser or device, or if the storage was cleared. For SSR frameworks (Next.js, SvelteKit, etc.), use @supabase/ssr on both the server and client to store the code verifier in cookies. | Has Session: false | Has Provider Token: false | Provider Token Preview: none
+[2026-06-05T08:10:32.413Z] CALLBACK: User: unknown | Error: PKCE code verifier not found in storage. This can happen if the auth flow was initiated in a different browser or device, or if the storage was cleared. For SSR frameworks (Next.js, SvelteKit, etc.), use @supabase/ssr on both the server and client to store the code verifier in cookies. | Has Session: false | Has Provider Token: false | Provider Token Preview: none
+[2026-06-05T08:16:28.044Z] SESSION_SYNC: User: zkalamgir@proton.me | Login: alamgir-zk | Token synced successfully!
+[2026-06-05T08:16:30.883Z] SESSION_SYNC: User: zkalamgir@proton.me | Login: alamgir-zk | Token synced successfully!
+[2026-06-05T08:27:54.491Z] SESSION_SYNC: User: zkalamgir@proton.me | Login: alamgir-zk | Token synced successfully!
+[2026-06-05T08:27:54.498Z] SESSION_SYNC: User: zkalamgir@proton.me | Login: alamgir-zk | Token synced successfully!
+[2026-06-05T08:27:57.407Z] SESSION_SYNC: User: zkalamgir@proton.me | Login: alamgir-zk | Token synced successfully!
+[2026-06-05T08:27:57.533Z] SESSION_SYNC: User: zkalamgir@proton.me | Login: alamgir-zk | Token synced successfully!
+[2026-06-05T09:05:06.997Z] SESSION_SYNC: User: zkalamgir@proton.me | Login: alamgir-zk | Token synced successfully!
+[2026-06-05T09:07:28.295Z] SESSION_SYNC: User: zkalamgir@proton.me | Login: alamgir-zk | Token synced successfully!
+[2026-06-05T09:07:28.653Z] SESSION_SYNC: User: zkalamgir@proton.me | Login: alamgir-zk | Token synced successfully!
+[2026-06-05T09:07:35.388Z] SESSION_SYNC: User: zkalamgir@proton.me | Login: alamgir-zk | Token synced successfully!
+[2026-06-05T09:07:35.639Z] SESSION_SYNC: User: zkalamgir@proton.me | Login: alamgir-zk | Token synced successfully!
+[2026-06-05T09:07:36.799Z] SESSION_SYNC: User: zkalamgir@proton.me | Login: alamgir-zk | Token synced successfully!
+[2026-06-05T09:09:15.871Z] SESSION_SYNC: User: zkalamgir@proton.me | Login: alamgir-zk | Token synced successfully!
+[2026-06-05T09:09:34.502Z] SESSION_SYNC: User: zkalamgir@proton.me | Login: alamgir-zk | Token synced successfully!
+[2026-06-05T09:09:37.754Z] SESSION_SYNC: User: zkalamgir@proton.me | Login: alamgir-zk | Token synced successfully!
+[2026-06-05T09:09:37.781Z] SESSION_SYNC: User: zkalamgir@proton.me | Login: alamgir-zk | Token synced successfully!
+[2026-06-05T09:10:32.824Z] SESSION_SYNC: User: zkalamgir@proton.me | Login: alamgir-zk | Token synced successfully!
+[2026-06-05T09:13:05.682Z] SESSION_SYNC: User: zkalamgir@proton.me | Login: alamgir-zk | Token synced successfully!
+[2026-06-05T09:13:11.266Z] SESSION_SYNC: User: zkalamgir@proton.me | Login: alamgir-zk | Token synced successfully!
+[2026-06-05T09:13:28.855Z] SESSION_SYNC: User: zkalamgir@proton.me | Login: alamgir-zk | Token synced successfully!
+[2026-06-05T09:14:54.280Z] SESSION_SYNC: User: zkalamgir@proton.me | Login: alamgir-zk | Token synced successfully!
+[2026-06-05T09:14:54.292Z] SESSION_SYNC: User: zkalamgir@proton.me | Login: alamgir-zk | Token synced successfully!
+[2026-06-05T09:14:57.091Z] SESSION_SYNC: User: zkalamgir@proton.me | Login: alamgir-zk | Token synced successfully!
+[2026-06-05T09:14:57.096Z] SESSION_SYNC: User: zkalamgir@proton.me | Login: alamgir-zk | Token synced successfully!
+[2026-06-05T14:51:34.705Z] SESSION_SYNC: User: zkalamgir@proton.me | Login: alamgir-zk | Token synced successfully!
+[2026-06-05T14:51:43.299Z] SESSION_SYNC: User: zkalamgir@proton.me | Login: alamgir-zk | Token synced successfully!
+[2026-06-05T14:54:10.652Z] SESSION_SYNC: User: zkalamgir@proton.me | Login: alamgir-zk | Token synced successfully!
+[2026-06-05T14:56:42.962Z] SESSION_SYNC: User: zkalamgir@proton.me | Login: alamgir-zk | Token synced successfully!
+[2026-06-05T14:58:24.080Z] SESSION_SYNC: User: zkalamgir@proton.me | Login: alamgir-zk | Token synced successfully!
+[2026-06-05T14:58:24.086Z] SESSION_SYNC: User: zkalamgir@proton.me | Login: alamgir-zk | Token synced successfully!
+[2026-06-05T15:08:33.457Z] SESSION_SYNC: User: zkalamgir@proton.me | Login: alamgir-zk | Token synced successfully!
+[2026-06-05T15:08:45.501Z] SESSION_SYNC: User: zkalamgir@proton.me | Login: alamgir-zk | Token synced successfully!
+[2026-06-05T15:08:45.510Z] SESSION_SYNC: User: zkalamgir@proton.me | Login: alamgir-zk | Token synced successfully!
+[2026-06-05T15:13:58.806Z] SESSION_SYNC: User: zkalamgir@proton.me | Login: alamgir-zk | Token synced successfully!
+[2026-06-05T15:14:06.353Z] SESSION_SYNC: User: zkalamgir@proton.me | Login: alamgir-zk | Token synced successfully!
+[2026-06-05T15:14:08.768Z] SESSION_SYNC: User: zkalamgir@proton.me | Login: alamgir-zk | Token synced successfully!
+[2026-06-05T15:48:24.227Z] SESSION_SYNC: User: zkalamgir@proton.me | Login: alamgir-zk | Token synced successfully!
+[2026-06-05T15:48:39.262Z] SESSION_SYNC: User: zkalamgir@proton.me | Login: alamgir-zk | Token synced successfully!
+[2026-06-05T15:48:39.269Z] SESSION_SYNC: User: zkalamgir@proton.me | Login: alamgir-zk | Token synced successfully!

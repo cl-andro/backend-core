@@ -2,7 +2,7 @@
 
 import { useCallback, useOptimistic, useState, useTransition } from "react";
 import Link from "next/link";
-import { createBrowserSupabase } from "@/lib/supabase";
+import { createBrowserSupabase, triggerGitHubLogin } from "@/lib/supabase";
 import { ROADMAP_PHASES, VOTABLE_ITEM_IDS } from "@/lib/roadmap-data";
 import type { RoadmapPhase, RoadmapItem, ItemStatus } from "@/lib/roadmap-data";
 import { toggleVote } from "./actions";
@@ -66,7 +66,8 @@ export default function RoadmapClient({
   const [showSignIn, setShowSignIn] = useState(false);
 
   const handleSignIn = useCallback(() => {
-    window.location.href = `/api/auth/github?redirect=${encodeURIComponent(window.location.pathname)}`;
+    const supabase = createBrowserSupabase();
+    triggerGitHubLogin(supabase, window.location.pathname);
   }, []);
 
   return (
